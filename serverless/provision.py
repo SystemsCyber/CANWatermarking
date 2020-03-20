@@ -6,7 +6,7 @@ import string
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric import ec,rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
@@ -14,7 +14,6 @@ import boto3
 from botocore.exceptions import ClientError
 
 from utils import lambdaResponse as response
-from utils import verify_meta_data_text
 
 
 region = 'us_east-1'
@@ -47,6 +46,20 @@ def provision(event,context):
     except:
         return response(400, "Parameters are in the incorrect format.")
     
+    rsa_private_key = rsa.generate_private_key(public_exponent=65537,
+                                               key_size=2048,
+                                               backend=default_backend())
+    server_rsa_key_bytes = rsa_private_key.private_bytes(
+                                encoding = serialization.Encoding.PEM,
+                                format = serialization.PrivateFormat.PKCS8,
+                                encryption_algorithm = serialization.NoEncryption())
+    rsa_public_key = rsa_private_key.public_key()
+    rsa_public_key_pem = server_public_key.public_bytes(
+        encoding = serialization.Encoding.PEM,
+        format = serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+
     #generate server ECC key pair
     server_private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
     server_pem_key = server_private_key.private_bytes(
@@ -80,6 +93,7 @@ def provision(event,context):
     # Encrypt the file
     f = Fernet(data_key_plaintext)
     server_pem_key_encrypted = f.encrypt(server_pem_key)
+    encrypted_server_rsa_key = f.encrypt(server_rsa_key_bytes)
 
     #Create random 16 bytes for the PEM key
     choices = string.ascii_letters + string.digits
@@ -111,25 +125,31 @@ def provision(event,context):
                             format = serialization.PrivateFormat.PKCS8,
                             encryption_algorithm = serialization.BestAvailableEncryption(rand_pass))
 
+    #Serialize server private key with password from rand_pass
+    server_rsa_key_pass = rsa_private_key.private_bytes(
+                            encoding = serialization.Encoding.PEM,
+                            format = serialization.PrivateFormat.PKCS8,
+                            encryption_algorithm = serialization.BestAvailableEncryption(rand_pass))
 
     can_conditioner_dict = {
         'id': serial_number.decode("utf-8"), #72 bit unique id from the ATECC608.
         'device_public_key': body['device_public_key'],
+        'encrypted_server_rsa_key': base64.b64encode(encrypted_server_rsa_key).decode('utf-8'),
         'device_public_key_prov_hash':device_public_key_hash.hex().upper()[:10],
         'server_public_key_prov_hash':server_public_key_hash.hex().upper()[:10],
         'email': email,
         'sourceIp':ip_address,
         'encrypted_data_key': base64.b64encode(data_key_encrypted).decode('utf-8'),
-        'encrypted_server_pem_key': base64.b64encode(server_pem_key_encrypted).decode('utf-8'),
-        #'password_for_testing': rand_pass.decode('ascii') #Will delete after testing
-
-        }
+        'encrypted_server_pem_key': base64.b64encode(server_pem_key_encrypted).decode('utf-8') 
+    }
 
     #Load the server_public_key, the server_pem_key_pass, and the encrypted_rand_pass
     data_dict = {
-    	'server_public_key': base64.b64encode(server_public_key_bytes).decode('ascii'),
-    	'server_pem_key_pass':base64.b64encode(server_pem_key_pass).decode('ascii'),
-    	'encrypted_rand_pass':base64.b64encode(encrypted_rand_pass).decode('ascii')
+    	'rsa_public_key': base64.b64encode(rsa_public_key_bytes).decode('ascii'),
+        'server_public_key': base64.b64encode(server_public_key_bytes).decode('ascii'),
+        'server_pem_key_pass':base64.b64encode(server_pem_key_pass).decode('ascii'),
+        'server_rsa_key_pass':base64.b64encode(server_pem_key_pass).decode('ascii'),
+        'encrypted_rand_pass':base64.b64encode(encrypted_rand_pass).decode('ascii')
     }
 
     dbClient = boto3.resource('dynamodb', region_name=region)

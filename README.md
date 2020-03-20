@@ -31,3 +31,9 @@ Deploy the system by running `sls deploy` in the serverless directory.
 
 If it doesn't work, you probably need to setup your credentials and serverless system.
 
+The serverless architecture deploys the API gateway and the Cognito User pool.
+
+Under Cognito -> User Pools -> CANConditionerUsers -> General Settings -> App clients, select Enable username password based authentication
+
+### User Registration
+https://can-conditioner.s3-website-us-east-1.amazonaws.com/index.html

@@ -1,18 +1,19 @@
 /*
- * NMFTA CAN Logger 3 Project   
+ * CAN Watermarking Device Sketch
  * 
- * Arduino Sketch for provisioning CAN Logger 3 by sending the device serial number and
- * exchanging public keys along with their signatures with the Amazon Web Services server
+ * Arduino Sketch for provisioning a Teensy 4.0 equipped device by sending the device serial 
+ * number and exchanging public keys along with their signatures with the 
+ * Amazon Web Services server
  * 
  * Written By Duy Van
  * Colorado State University
  * Department of Systems Engineering
  * 
- * 7 Janurary 2019
+ * 3 March 2020
  * 
  * Released under the MIT License
  *
- * Copyright (c) 2019        Jeremy S. Daily, Duy Van
+ * Copyright (c) 2020        Jeremy S. Daily, Duy Van
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,11 +35,11 @@
  * 
  * 
  */
-
+#include <Arduino.h>
+#include <i2c_driver_wire.h>
 #include <SparkFun_ATECCX08a_Arduino_Library.h> //Click here to get the library: http://librarymanager/All#SparkFun_ATECCX08a
-#include <i2c_t3.h> //use to communicate with the ATECC608a cryptographic coprocessor
 #include <sha256.h> //Hash device public key 
-
+#include <EEPROM.h> 
 ATECCX08A atecc;
 
 #define SHA256_BLOCK_SIZE 32          // SHA256 outputs a 32 byte digest
@@ -55,7 +56,7 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   //Initiate ATECC608A connection
-  Wire.begin(I2C_MASTER, 0x00, I2C_PINS_18_19, I2C_PULLUP_EXT, 100000);
+  Wire.begin();
   if (atecc.begin() == true)
   {
     Serial.println("Successful wakeUp(). I2C connections are good.");
@@ -139,11 +140,11 @@ void loop() {
     atecc.readPublicKey(false);
     atecc.ECDH(atecc.storedPublicKey, ECDH_OUTPUT_IN_TEMPKEY,0x0000);
     atecc.AES_ECB_decrypt(encrypted_pass);
-    for (int n = 0; n < 16;n++){
-    char hex_digit[3];
-    sprintf(hex_digit,"%02X",atecc.AES_buffer[n]);
-    Serial.write(hex_digit);
-  }
+    for (int n = 0; n < 16; n++){
+      char hex_digit[3];
+      sprintf(hex_digit,"%02X",atecc.AES_buffer[n]);
+      Serial.write(hex_digit);
+    }
     
   }
   

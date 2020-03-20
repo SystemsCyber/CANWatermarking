@@ -44,16 +44,54 @@ import hashlib
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
+import jwkest
+from jwkest.jwk import load_jwks_from_url, load_jwks
+from jwkest.jws import JWS
+jws = JWS()
+
+
 logger = logging.getLogger()
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.DEBUG)
 
-AWS_REGION = "us-east-2"
-API_ENDPOINT = r"https://47tzdaoo6k.execute-api.us-east-1.amazonaws.com/dev/"
-APP_CLIENT_ID = "58tl1drhvqtjkmhs69inh7l1t3"
-USER_POOL_ID = "us-east-1_fiNazAdBU"
+AWS_REGION = "us-east-1"
+API_ENDPOINT = r"https://jeg5qkwei4.execute-api.us-east-1.amazonaws.com/dev/"
+APP_CLIENT_ID = "213ifn0mjhb64msjfp1bege1eb"
+USER_POOL_ID = "us-east-1_hwjLE3kJY"
 IDENTITY_TOKEN_NAME = "identity_token.json"
 ACCESS_TOKEN_NAME = "access_token.json"
+
+def decode_jwt(token):
+    """
+    Validate and decode the web token from the Amazon Cognito.
+    Stores the public key needed to decrypt the token.
+    Returns 
+    """
+    url="https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json".format(AWS_REGION,USER_POOL_ID)
+    try:
+        r = requests.get(url)
+        logger.debug(r.status_code)
+        key_set = load_jwks(r.text)
+    except:
+        logger.debug(traceback.format_exc())
+        return False
+    try:
+        token_dict = jws.verify_compact(token, keys=key_set)
+        logger.info(token_dict)
+        if token_dict['exp'] < time.time():
+            logger.debug("Token Expired")
+            return False
+        return {"user_id":token_dict['sub'], 
+                "user_email":token_dict['email']}
+        # if token_dict['email_verified']:
+        #     return {"user_id":token_dict['sub'], 
+        #             "user_email":token_dict['email']}
+        # else:
+        #     logger.debug("E-mail not verfied.")
+        #     return False
+    except:
+        logger.debug(traceback.format_exc())
+        return False
 
 class SerialListener(threading.Thread):
     def __init__(self, rx_queue, serial_port):
@@ -549,7 +587,7 @@ class ProvisioningApp(QMainWindow):
                "AuthFlow" : "USER_PASSWORD_AUTH",
                "ClientId" : APP_CLIENT_ID
             }
-        url = "https://cognito-idp.us-east-2.amazonaws.com"
+        url = "https://cognito-idp.us-east-1.amazonaws.com"
         header = {}
         header["Content-Type"]= "application/x-amz-json-1.1"
         header["X-Amz-Target"]= "AWSCognitoIdentityProviderService.InitiateAuth"
