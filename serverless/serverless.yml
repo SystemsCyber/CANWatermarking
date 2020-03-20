@@ -1,0 +1,117 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: 
+  name: CANWatermarking
+  
+provider:
+  name: aws
+  runtime: python3.7
+  profile: csu
+  stage: dev
+  region: us-east-1
+  apiKeys:
+    - CANWatermarkingAPIKey 
+# usagePlan:
+#   quota:
+#     limit: 500
+#     offset: 2
+#     period: MONTH
+#   throttle:
+#     burstLimit: 20
+#     rateLimit: 10
+
+functions:
+  auth:
+    handler: auth.auth
+    events:
+      - http:
+          path: auth
+          method: post
+          private: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer  
+  provision:
+    handler: provision.provision  
+    events:
+      - http:
+          path: provision
+          method: post
+          private: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+resources:
+  Resources:
+    CognitoUserPool:
+      Type: "AWS::Cognito::UserPool"
+      Properties:
+        MfaConfiguration: OFF
+        UserPoolName: CANConditionerUsers
+        UsernameAttributes:
+          - email
+          - phone_number
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireLowercase: True
+            RequireNumbers: True
+            RequireSymbols: True
+            RequireUppercase: True
+    CognitoUserPoolClient:
+      Type: "AWS::Cognito::UserPoolClient"
+      Properties:
+        ClientName: CANConditionerUsersClient
+        GenerateSecret: False
+        UserPoolId:
+          Ref: CognitoUserPool
+    ApiGatewayAuthorizer:
+      DependsOn:
+        - ApiGatewayRestApi
+      Type: AWS::ApiGateway::Authorizer
+      Properties:
+        Name: cognito-authorizer
+        IdentitySource: method.request.header.Authorization
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        Type: COGNITO_USER_POOLS
+        ProviderARNs:
+          - Fn::GetAtt: [CognitoUserPool, Arn]
+    deviceDB:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: CANConditioners
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+  Outputs:
+    CognitoUserPoolArn:
+      Value:
+        Fn::GetAtt:
+          - CognitoUserPool
+          - Arn
+      Export:
+        Name: CognitoUserPoolArn
+plugins:
+  - serverless-python-requirements
+custom:
+  pythonRequirements:
+    zip: false
+    slim: false
