@@ -37,3 +37,13 @@ Under Cognito -> User Pools -> CANConditionerUsers -> General Settings -> App cl
 
 ### User Registration
 https://can-conditioner.s3-website-us-east-1.amazonaws.com/index.html
+
+Cognito -> App Integration -> Domain Name enter canconditioner
+
+
+### Provisioning Sketch
+The Teensy 4.0 needs to use the Wire library to communicate with the ATECC608.
+
+#include <Arduino.h>
+#include <i2c_driver_wire.h>
+jeremy.daily@colostate.edu
