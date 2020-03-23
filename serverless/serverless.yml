@@ -53,6 +53,17 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId:
+              Ref: ApiGatewayAuthorizer  
+  get_key:
+    handler: key.get_key  
+    events:
+      - http:
+          path: get_key
+          method: post
+          private: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
               Ref: ApiGatewayAuthorizer
 resources:
   Resources:
@@ -115,3 +126,12 @@ custom:
   pythonRequirements:
     zip: false
     slim: false
+iamRoleStatements:
+  - Effect: Allow
+    Action:
+      - dynamodb:Query
+      - dynamodb:Scan
+      - dynamodb:GetItem
+      - dynamodb:PutItem
+      - dynamodb:UpdateItem
+    Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/CANConditioners"
