@@ -52,7 +52,7 @@ uint8_t temp_buf[32];
 // A buffer for the X962 encoded UncompressedPoint formatted SECP256R1 ECC public key (less the leading byte of 0x04).
 uint8_t server_public_key[64];
 // A buffer for an AES encrypted password
-uint8_t encrypted_pass[16];
+uint8_t padded_device_code[16];
 // A buffer for the DER encoded PKCS1 formatted 2048 RSA public key
 uint8_t server_rsa_key[270];
 // A buffer to accept serial commands
@@ -95,7 +95,21 @@ void loop() {
   //Wait for serial communications to initiate the commands
   while(Serial.available() == 0);//wait for Python input
   serial_string = Serial.readStringUntil('\n');
-
+  
+  if (serial_string.equalsIgnoreCase("SERIAL")) 
+  { //Send the device serial number
+    // Sends serial number and an ECC public key.  
+    atecc.readConfigZone(false); // produces a serial number
+    
+    //Send serial number to python through local serial
+    for (int n = 0; n < sizeof(atecc.serialNumber);n++){
+      char hex_digit[3];
+      sprintf(hex_digit,"%02X",atecc.serialNumber[n]);
+      Serial.write(hex_digit);
+    }
+    Serial.write('\n');  
+  }
+  
   if (serial_string.equalsIgnoreCase("KEY")) 
   { // Create and lock a private ECC key. Send the public key
     atecc.writeProvisionConfig(); //Write and Lock Configuration made specifically for the CAN Logger 3 application, please see library for more detail
@@ -175,18 +189,19 @@ void loop() {
   else if (serial_string.equalsIgnoreCase("PASSWORD")) 
   { //Decrypt password process to test provisioning.
     while (Serial.available() == 0);//wait for serial input again
-    for (int i = 0; i < sizeof(encrypted_pass); i++){
+    for (int i = 0; i < sizeof(padded_device_code); i++){
       byte c = Serial.read();
-      encrypted_pass[i] = c;
+      padded_device_code[i] = c;
     }      
     atecc.readPublicKey(false);
     atecc.ECDH(atecc.storedPublicKey, ECDH_OUTPUT_IN_TEMPKEY,0x0000);
-    atecc.AES_ECB_decrypt(encrypted_pass);
+    atecc.AES_ECB_encrypt(padded_device_code);
     for (int n = 0; n < sizeof(atecc.AES_buffer); n++){
       char hex_digit[3];
       sprintf(hex_digit,"%02X",atecc.AES_buffer[n]);
       Serial.write(hex_digit);
     }
+    //Show that it processed
     for (int i = 1;i<5;i++){
       digitalWrite(RED_LED,LOW);
       digitalWrite(YELLOW_LED,LOW);

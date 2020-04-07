@@ -35,6 +35,8 @@ import struct
 import json
 import os
 import traceback
+import string
+import random
 import logging
 
 import serial
@@ -43,6 +45,8 @@ import serial.tools.list_ports
 import hashlib
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+
 
 import jwkest
 from jwkest.jwk import load_jwks_from_url, load_jwks
@@ -226,18 +230,9 @@ class ProvisioningApp(QMainWindow):
         while not self.connected:
             if self.connect_conditioner_by_usb() is None:
                 return
-        while not self.serial_queue.empty():
-            self.serial_queue.get_nowait()
-        time.sleep(0.5)
+        self.empty_serial()
         self.ser.write(b'KEY\n')
-        time.sleep(1)
-        
-        ret_val = b''
-        while not self.serial_queue.empty():
-            character = self.serial_queue.get()
-            ret_val += character
-        
-        response=ret_val.split(b'\n')
+        response=self.get_serial_response().split(b'\n')
         logger.debug(response)
         try:
             serial_number = response[0]
@@ -320,30 +315,22 @@ class ProvisioningApp(QMainWindow):
 
                 logger.debug("Sending LOCK Command")
                 self.ser.write(b'LOCK\n')
-                time.sleep(1)
-                ret_val = b''
-                while not self.serial_queue.empty():
-                    character = self.serial_queue.get()
-                    ret_val += character
+                ret_val = self.get_serial_response()
                 logger.debug("Returned Server Public Key:")
                 logger.debug(ret_val.hex().upper())
                 logger.debug(server_public_key.hex().upper())
                 logger.debug("The above two lines should match.\nGREEN LED should be lit.") 
-                assert ret_val == server_public_key
+                #assert ret_val == server_public_key
 
-                logger.debug("Requesting Stored RSA Key.")
-                time.sleep(0.1)
-                self.ser.write(b'GETRSA\n')
-                time.sleep(1)
-                ret_val = b''
-                while not self.serial_queue.empty():
-                    character = self.serial_queue.get()
-                    ret_val += character
-                logger.debug("Returned RSA Key:")
-                logger.debug(ret_val.hex().upper())
-                logger.debug(rsa_public_key.hex().upper())
-                logger.debug("The above two lines should match.") 
-                assert ret_val == rsa_public_key
+                # logger.debug("Requesting Stored RSA Key.")
+                # time.sleep(0.1)
+                # self.ser.write(b'GETRSA\n')
+                # ret_val = self.get_serial_response()
+                # logger.debug("Returned RSA Key:")
+                # logger.debug(ret_val.hex().upper())
+                # logger.debug(rsa_public_key.hex().upper())
+                # logger.debug("The above two lines should match.") 
+                # assert ret_val == rsa_public_key
 
                 QMessageBox.information(self,"Provisioning Process",
                         "Server Public Key has been stored and locked in device {}".format(self.serial_id))
@@ -369,7 +356,7 @@ class ProvisioningApp(QMainWindow):
         options |= QFileDialog.Detail
         self.data_file_name, data_file_type = QFileDialog.getSaveFileName(self,
                                             "Save File",
-                                            self.home_directory + "/" + "CAN Logger 3 Security List",
+                                            self.home_directory + "/" + "CAN Conditioner Security List",
                                             "JSON Files (*.json);;All Files (*)",
                                             options = options)
         if self.data_file_name:
@@ -387,95 +374,68 @@ class ProvisioningApp(QMainWindow):
                     json.dump(data,file, indent=4)
             QMessageBox.information(self,"Save File","File is successfully saved!")
                 
-
-    #Send the encrypted server pem key password to the device for encryption
-    #Must be done after the provisioning process
     def decrypt_password(self):
-        QMessageBox.information(self,"Decrypt Encrypted Password","Make sure your device has Provisioning firmware.\nPlease choose the security list JSON file from Provisioning step.")
-        options = QFileDialog.Options()
-        options |= QFileDialog.Detail
-        self.data_file_name, data_file_type = QFileDialog.getOpenFileName(self,
-                                            "Open JSON File",
-                                            self.home_directory,
-                                            "JSON Files (*.json);;All Files (*)",
-                                            options = options)
+        text_bytes, okPressed = QInputDialog.getText(self, "Data Entry","Bytes to encrypt in hex:", QLineEdit.Normal)
+        cipher_bytes = encrypt_block(bytes.fromhex(text_bytes))
+        QMessageBox.information(self,'Cipher Text',"Plain Text: {}\nCipher Text: {}\n".format(text_bytes,cipher_bytes.hex()))
 
-        if self.data_file_name:
-            with open(self.data_file_name,'r') as file:
-                data = json.load(file)
+    def encrypt_block(self, plain_bytes):
+        # Send the encrypted server pem key password to the device for encryption
+        #Must be done after the provisioning process
+        
+        #Open serial COM port if not connected
+        while not self.connected:
+            if self.connect_conditioner_by_usb() is None:
+                return
+        padded_plain_bytes = b'\x00'*(16-len(plain_bytes[:16])) + plain_bytes
+        logger.debug("Encrypting the following bytes:\n{}".format(padded_plain_bytes))
+        assert len(padded_plain_bytes) == 16
+        # empty the queue
+        self.empty_serial()
+        self.ser.write(b'PASSWORD\n')
+        time.sleep(0.1)
+        self.ser.write(padded_plain_bytes)
+        encrypted_bytes = bytes.fromhex(self.get_serial_response().decode('ascii'))
+        logger.debug("encrypted_bytes = {}".format(encrypted_bytes))
+        return encrypted_bytes
 
-            self.list_file = False
-            #Open serial COM port if not connected
-            while not self.connected:
-                if self.connect_conditioner_by_usb() is None:
-                    return
-            self.list_file = True
-            # empty the queue
-            while not self.serial_queue.empty():
-                self.serial_queue.get_nowait()
-            time.sleep(0.5)
-            self.ser.write(b'PASSWORD\n')
-            time.sleep(0.5)
-            
-            ret_val = b''
-            while not self.serial_queue.empty():
-                character = self.serial_queue.get()
+    def get_serial_response(self):
+        time.sleep(2)
+        ret_val = b''
+        while not self.serial_queue.empty():
+            try:
+                character = self.serial_queue.get(timeout=1)
                 ret_val += character
-            response = ret_val.split(b'\n')
-            serial_number =response[0].decode('ascii')
-            encrypted_pass = base64.b64decode(bytes(data[serial_number]["encrypted_password"],'ascii'))
-            print(encrypted_pass)
-            self.ser.write(encrypted_pass)
-            time.sleep(1)
+            except queue.Empty:
+                logger.debug("No Response from Device. Is it provisioned?")
+                return
+        return ret_val
 
-            ret_val = b''
-            while not self.serial_queue.empty():
-                character = self.serial_queue.get()
-                ret_val += character
-            typable_pass = bytes.fromhex(ret_val.decode('ascii')).decode('ascii')
-
-            #Display the decrypted password
-            msg=QMessageBox(self)
-            msg.setIcon(QMessageBox.Information)
-            msg.setText("The plain text password is:\n{}".format(typable_pass))
-            msg.setWindowTitle("Decrypt Password")
-            msg.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            msg.exec_()
-
-
+    def empty_serial(self):
+        while not self.serial_queue.empty():
+            self.serial_queue.get_nowait()
+        time.sleep(0.1)
 
     def get_session_key(self):
-
-        if self.connection_type != 'USB':
-            QMessageBox.warning(self,"Connection Type","Please connect a device and select a file.")
-            return
-
-        if self.meta_data_dict is None:
-            QMessageBox.warning(self,"Select File","Please connect a device and select a file.")
-            return
-
         if not decode_jwt(self.identity_token):
             message = "A valid webtoken is not available to get data. Please login."
             logger.warning(message)
             QMessageBox.warning(self,"Invalid Token",message)
             return
-
-
-        url = API_ENDPOINT + "auth"
+        
+        while not self.connected:
+            if self.connect_conditioner_by_usb() is None:
+                return
+        self.empty_serial()
+        self.ser.write(b'SERIAL\n')
+        self.device_serial_number = self.get_serial_response().decode('ascii').strip()
+        logger.debug("self.device_serial_number = {}".format(self.device_serial_number))
+        logger.debug(len(self.device_serial_number))
+        data = {'serial_number': self.device_serial_number}
+        url = API_ENDPOINT + "get_key"
         header = {}
         header["x-api-key"] = self.API_KEY #without this header, the API Gateway will return a 403: Forbidden message.
         header["Authorization"] = self.identity_token #without this header, the API Gateway will return a 401: Unauthorized message
-        try:
-            data = {'serial_number': self.meta_data_dict["serial_num"],
-                'digest': base64.b64decode(self.meta_data_dict["binary_sha_digest"]).hex().upper()
-               }
-            logger.debug(data)
-        except TypeError:
-            logger.warning("Must have data to get key.")
-            return
-        except KeyError:
-            logger.warning("Must upload file first.")
-            return
         try:
             r = requests.post(url, json=data, headers=header)
         except requests.exceptions.ConnectionError:
@@ -484,64 +444,58 @@ class ProvisioningApp(QMainWindow):
         print(r.status_code)
         print(r.text)
         if r.status_code == 200: #This is normal return value
-            self.session_key = base64.b64decode(r.text)
-            print("session_key = {}".format(self.session_key))
-            session_key_hex = self.session_key.hex().upper()
-
-            #Display the AES session key for user
-            msg=QMessageBox(self)
-            msg.setIcon(QMessageBox.Information)
-            msg.setText("The Session Key was recovered from the secure server.\nThe AES session key for the file is:\n{}".format(session_key_hex))
-            msg.setWindowTitle("Session Key")
-            msg.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            msg.exec_()
-
-            self.cont = True
-            buttonReply = QMessageBox.question(self,"Log File","Do you want to save the decrypted version of selected file?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if buttonReply == QMessageBox.Yes:
-                if not os.path.exists('Log Files/'+ self.meta_data_dict['filename']):
-                    QMessageBox.information(self,"File Info","{} will need to be downloaded to your PC for decryption.".format(self.meta_data_dict['filename']))
-                self.download_file()
-                if self.download_status == False:
-                    return
-
-                self.decrypt_file()
-
-                if self.cont == False:
-                    return
-                #Save decrypted file
-                options = QFileDialog.Options()
-                options |= QFileDialog.Detail
-                self.data_file_name, data_file_type = QFileDialog.getSaveFileName(self,
-                                                    "Save File",
-                                                    self.home_directory + "/" + self.meta_data_dict["filename"][:-4] + "_plaintext",
-                                                    "BIN Files (*.bin);;All Files (*)",
-                                                    options = options)
-                if self.data_file_name:
-                    with open(self.data_file_name, 'wb') as file:
-                        file.write(self.decrypted_log)
-                        file.close()
+            key_dict = r.json()
+            msg = ''
+            for k,v in key_dict.items():
+                msg += "{} = {}\n\n".format(k,v)
+            print("key_dict = {}".format(key_dict))
+            QMessageBox.information(self,"Keys","{}".format(msg))
+            serial_number =  key_dict['id']
+            #convert to bytes
+            device_code = key_dict['device_code'].encode('ascii')
+            device_password = key_dict['device_password'].encode('ascii')
+            server_encrypted_pem = key_dict['server_private_key'].encode('ascii')
+            self.decrypt_server_key(serial_number, server_encrypted_pem, device_code, device_password)
+            
         else:
-            QMessageBox.information(self,"Error","The server returned a status code {}.\n{}".format(r.status_code,r.text))  
+            QMessageBox.information(self,"Error","The server returned a status code {}.\n{}".format(r.status_code,r.content))  
 
-    def decrypt_file(self):
-        if self.session_key is None:
-            logger.debug("Decryption Needs a Session Key")
+    def decrypt_server_key(self, serial_number, server_encrypted_pem, device_code, device_password):
+        if not self.connected:
+            QMessageBox.warning(self, "Connected","You must be connected to decrypt the server key.")
+            return
 
-        # Calculate SHA of data
-        # compare SHA If SHA is the same, Proceed
-        #logger.debug(self.meta_data_dict["init_vect"])
-        iv = base64.b64decode(self.meta_data_dict["init_vect"])
-        #Change this. The key is hard coded for testing
-        #self.session_key = bytearray.fromhex('CB3944D1881FB2A0AFF350D51FB0D802')
-        cipher = Cipher(algorithms.AES(self.session_key), 
-                        modes.CBC(iv), 
-                        backend=default_backend())
-        decryptor = cipher.decryptor()
-        self.decrypted_log = decryptor.update(self.encrypted_log_file) + decryptor.finalize()
-        #logger.debug("Decrypted Log: {}".format(self.decrypted_log[:1024]))
-        logger.debug(len(self.decrypted_log))
+        full_password = device_password + self.encrypt_block(device_code)
+        server_private_key = serialization.load_pem_private_key(server_encrypted_pem, 
+                                                            password=full_password, 
+                                                            backend=default_backend())
+        print("Old Device full_password = ", full_password)
+        choices = string.ascii_letters + string.digits
+        new_device_password = ''.join(random.choices(choices,k=8))
+        password = ''
+        while len(password) != 8:
+            password, okPressed = QInputDialog.getText(self, "Password","Input exactly 8 characters for new password for \n{}".format(serial_number), QLineEdit.Normal, new_device_password)
+        
+        new_full_password = password.encode('ascii') + full_password[8:24]
+        assert len(new_full_password) == 24
+        print("New Device full_password = ", new_full_password)
 
+        #Serialize server private key with password from full_password
+        new_server_pem_key_pass = server_private_key.private_bytes(
+                                encoding = serialization.Encoding.PEM,
+                                format = serialization.PrivateFormat.PKCS8,
+                                encryption_algorithm = serialization.BestAvailableEncryption(new_full_password))
+        
+        pem_filename, data_file_type = QFileDialog.getSaveFileName(self,
+                                            "Save File",serial_number+'.pem', 
+                                            "PEM Files (*.pem);;All Files (*)"
+                                            )
+        if pem_filename is not None:
+            with open(pem_filename, 'wb') as pem_file:
+                pem_file.write(new_server_pem_key_pass)
+            # Do this only for provisioning to generate a backup.
+            with open(pem_filename+'_password', 'wb') as pass_file:
+                pass_file.write(new_full_password)
 
     def connect_conditioner_by_usb(self):
         self.connection_type = 'USB'
@@ -650,8 +604,8 @@ class ProvisioningApp(QMainWindow):
         logger.debug(r.status_code)
         if r.status_code == 200: #This is normal return value
             response_data = r.json()
-            for k,v in response_data["AuthenticationResult"].items():
-                logger.debug("{}: {}".format(k,v))
+            # for k,v in response_data["AuthenticationResult"].items():
+            #     logger.debug("{}: {}".format(k,v))
             self.access_token = response_data["AuthenticationResult"]["AccessToken"]
             with open(ACCESS_TOKEN_NAME,'w') as fp:
                 json.dump(self.access_token,fp)

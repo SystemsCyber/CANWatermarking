@@ -4,3 +4,6 @@ provisioningApp/password.txt
 provisioningApp/username.txt
 provisioningApp/identity_token.json
 provisioningApp/access_token.json
+*.pem
+*.pem_password
+provisioningApp/CAN Conditioner Security List.json
