@@ -167,6 +167,13 @@ class ProvisioningApp(QMainWindow):
         logger_menu.addAction(get_key)
         logger_toolbar.addAction(get_key)
 
+        get_key = QAction(QIcon(r'icons/get_key.png'), 'Get Server Public Key', self)
+        get_key.setShortcut('Ctrl+P')
+        get_key.setStatusTip('Get stored server public key')
+        get_key.triggered.connect(self.get_server_public_key)
+        logger_menu.addAction(get_key)
+        logger_toolbar.addAction(get_key)
+
         #####################
         # Server
         #####################
@@ -218,6 +225,20 @@ class ProvisioningApp(QMainWindow):
         if not self.load_tokens():
             self.login()
     
+    def get_server_public_key(self):
+        while not self.connected:
+            if self.connect_conditioner_by_usb() is None:
+                return
+        logger.debug("Sending LOCK Command")
+        self.empty_serial()
+        self.ser.write(b'LOCK\n')
+        time.sleep(1)
+        ret_val = self.get_serial_response()
+        logger.debug("Returned Server Public Key:")
+        logger.debug(ret_val)
+        QMessageBox.information(self,"Stored Key","Returned Server Public Key:\n{}".format(ret_val))
+           
+
     def provision(self):
         buttonReply = QMessageBox.question(self,"Provision Process","Are you performing provisioning and does your device has the provisioning firmware?",QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if buttonReply != QMessageBox.Yes:
@@ -273,6 +294,7 @@ class ProvisioningApp(QMainWindow):
                 device_public_key_hash = data_dict['device_public_key_prov_hash']
                 server_public_key_hash = data_dict['server_public_key_prov_hash']
                 
+
                 self.serial_id = serial_number.decode('utf-8')
                 logger.debug("Device ID from Server: {}".format(device_id))
                 logger.debug("Device ID from Serial: {}".format(device_id))
@@ -320,21 +342,21 @@ class ProvisioningApp(QMainWindow):
                 logger.debug(ret_val.hex().upper())
                 logger.debug(server_public_key.hex().upper())
                 logger.debug("The above two lines should match.\nGREEN LED should be lit.") 
-                #assert ret_val == server_public_key
+                assert ret_val == server_public_key
 
-                # logger.debug("Requesting Stored RSA Key.")
-                # time.sleep(0.1)
-                # self.ser.write(b'GETRSA\n')
-                # ret_val = self.get_serial_response()
-                # logger.debug("Returned RSA Key:")
-                # logger.debug(ret_val.hex().upper())
-                # logger.debug(rsa_public_key.hex().upper())
-                # logger.debug("The above two lines should match.") 
+                logger.debug("Requesting Stored RSA Key.")
+                time.sleep(0.1)
+                self.ser.write(b'GETRSA\n')
+                ret_val = self.get_serial_response()
+                logger.debug("Returned RSA Key:")
+                logger.debug(ret_val.hex().upper())
+                logger.debug(rsa_public_key.hex().upper())
+                logger.debug("The above two lines should match.") 
                 # assert ret_val == rsa_public_key
 
                 QMessageBox.information(self,"Provisioning Process",
                         "Server Public Key has been stored and locked in device {}".format(self.serial_id))
-                self.ask_to_save()
+                #self.ask_to_save()
             except:
                 msg = traceback.format_exc()
                 logger.debug(msg)
@@ -352,6 +374,7 @@ class ProvisioningApp(QMainWindow):
 
     def save_security_list(self):
         #Save the server pem key with pass and encrypted password to a text file
+        self.server_pem = server_public_key
         options = QFileDialog.Options()
         options |= QFileDialog.Detail
         self.data_file_name, data_file_type = QFileDialog.getSaveFileName(self,
@@ -376,7 +399,7 @@ class ProvisioningApp(QMainWindow):
                 
     def decrypt_password(self):
         text_bytes, okPressed = QInputDialog.getText(self, "Data Entry","Bytes to encrypt in hex:", QLineEdit.Normal)
-        cipher_bytes = encrypt_block(bytes.fromhex(text_bytes))
+        cipher_bytes = self.encrypt_block(bytes.fromhex(text_bytes))
         QMessageBox.information(self,'Cipher Text',"Plain Text: {}\nCipher Text: {}\n".format(text_bytes,cipher_bytes.hex()))
 
     def encrypt_block(self, plain_bytes):
@@ -400,7 +423,7 @@ class ProvisioningApp(QMainWindow):
         return encrypted_bytes
 
     def get_serial_response(self):
-        time.sleep(2)
+        time.sleep(1)
         ret_val = b''
         while not self.serial_queue.empty():
             try:
