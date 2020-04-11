@@ -1,0 +1,118 @@
+#include <Crypto.h>
+#include <AES.h>
+#include <OMAC.h>
+
+
+OMAC cmac;
+OMAC cmac_copy;
+AES128 cmac_cipher;
+uint8_t omac[16];
+uint8_t omac_copy[16];
+uint8_t omac_tag;
+uint8_t cmac_data[128];
+
+uint8_t msg[64] = {0x6F,0xAA,0x39,0x8B,0x3A,0x85,0x84,0x02,0xA5,0x0B,0x89,0x5E,0xE6,0x17,0xB9,0x16,0x66,0x01,0x1B,0xC4,0xEB,0xCB,0x52,0xAB,0x78,0xE0,0xBE,0xFA,0x2B,0x96,0xA0,0xE6,0xDD,0xFB,0x89,0x7E,0x77,0xAD,0x62,0x8A,0x12,0xF2,0x50,0xA4,0x78,0x64,0x59,0x00,0xF8,0x31,0x2C,0xC0,0x39,0x5B,0x0A,0xC9,0xCD,0xC3,0xD3,0x59,0x20,0x7F,0x07,0x54};
+
+uint8_t aes_key[16] = {0xBD,0x90,0xDF,0x57,0xD1,0x4A,0x59,0x37,0x69,0xF4,0xB5,0x20,0x7E,0xC4,0x72,0xBC};
+
+void print_bytes(byte bytes_to_print[], size_t array_size){
+  for (int i = 0; i < array_size; i++)
+  { 
+    char hex_digit[3];
+    sprintf(hex_digit,"%02X",bytes_to_print[i]);
+    Serial.print(hex_digit);
+  }
+  Serial.println();
+}
+void setup() {
+  Serial.println("Set Key for CMAC");
+  cmac_cipher.setKey(aes_key, sizeof(aes_key));
+  cmac.setBlockCipher(&cmac_cipher);
+  print_bytes(aes_key,sizeof(aes_key));
+  
+  Serial.println("Initializing CMAC");
+  cmac.initFirst(omac);
+  memset(omac,0,sizeof(omac));
+  Serial.println("Adding data to CMAC.");
+  memcpy(cmac_data,msg,sizeof(msg));
+  print_bytes(cmac_data,sizeof(cmac_data));
+  cmac.update(omac,cmac_data,sizeof(cmac_data));
+
+  //Make a copy to produce an intermediate result
+  memcpy(&cmac_copy,&cmac,sizeof(cmac));
+  memcpy(&omac_copy,&omac,sizeof(omac));
+  Serial.println("CMAC Copy Finalize 1:");
+  cmac_copy.finalize(omac_copy);
+  print_bytes(omac_copy,sizeof(omac_copy));
+
+  Serial.println("Add data again.");
+  cmac.update(omac,cmac_data,sizeof(cmac_data));
+  
+  //Make a copy to produce an intermediate result
+  memcpy(&cmac_copy,&cmac,sizeof(cmac));
+  memcpy(&omac_copy,&omac,sizeof(omac));
+  Serial.println("CMAC Copy Finalize 2:");
+  cmac_copy.finalize(omac_copy);
+  print_bytes(omac_copy,sizeof(omac_copy));
+  
+  cmac.update(omac,0x00,1);
+  Serial.println("CMAC Finalize:");
+  cmac.finalize(omac);
+  print_bytes(omac,sizeof(omac));
+
+  Serial.println();
+  Serial.println("Test Vectors from RFC4493");
+  Serial.println("Set Key for CMAC");
+  uint8_t key[16] = {0x2B,0x7E,0x15,0x16,0x28,0xAE,0xD2,0xA6,0xAB,0xF7,0x15,0x88,0x09,0xCF,0x4F,0x3C};
+  cmac_cipher.setKey(key, sizeof(key));
+  print_bytes(key,sizeof(key));
+  cmac.setBlockCipher(&cmac_cipher);
+
+  cmac.initFirst(omac);
+  memset(omac,0,sizeof(omac));
+  Serial.println("Example 1");
+  Serial.println("AES-CMAC: bb1d6929e95937287fa37d129b756746");
+  cmac.finalize(omac);
+  Serial.print("AES-CMAC: ");
+  print_bytes(omac,sizeof(omac));
+
+  Serial.println("Example 2");
+  Serial.println("AES-CMAC: 070a16b46b4d4144f79bdd9dd04a287c");
+  cmac.initFirst(omac);
+  memset(omac,0,sizeof(omac));
+  uint8_t msg2[16] = {0x6b,0xc1,0xbe,0xe2,0x2e,0x40,0x9f,0x96,0xe9,0x3d,0x7e,0x11,0x73,0x93,0x17,0x2a};
+  cmac.update(omac, msg2, sizeof(msg2));
+  cmac.finalize(omac);
+  Serial.print("AES-CMAC: ");
+  print_bytes(omac,sizeof(omac));
+
+  Serial.println("Example 3");
+  Serial.println("AES-CMAC: dfa66747de9ae63030ca32611497c827");
+  cmac.initFirst(omac);
+  memset(omac,0,sizeof(omac));
+  uint8_t msg3[40] = {0x6B,0xC1,0xBE,0xE2,0x2E,0x40,0x9F,0x96,0xE9,0x3D,0x7E,0x11,0x73,0x93,0x17,0x2A,
+                      0xAE,0x2D,0x8A,0x57,0x1E,0x03,0xAC,0x9C,0x9E,0xB7,0x6F,0xAC,0x45,0xAF,0x8E,0x51,
+                      0x30,0xC8,0x1C,0x46,0xA3,0x5C,0xE4,0x11};
+  cmac.update(omac, msg3, sizeof(msg3));
+  cmac.finalize(omac);
+  Serial.print("AES-CMAC: ");
+  print_bytes(omac,sizeof(omac));
+  
+  Serial.println("Example 4");
+  Serial.println("AES-CMAC: 51f0bebf7e3b9d92fc49741779363cfe");
+  cmac.initFirst(omac);
+  memset(omac,0,sizeof(omac));
+  uint8_t msg4[64] = {0x6B,0xC1,0xBE,0xE2,0x2E,0x40,0x9F,0x96,0xE9,0x3D,0x7E,0x11,0x73,0x93,0x17,0x2A,
+                      0xAE,0x2D,0x8A,0x57,0x1E,0x03,0xAC,0x9C,0x9E,0xB7,0x6F,0xAC,0x45,0xAF,0x8E,0x51,
+                      0x30,0xC8,0x1C,0x46,0xA3,0x5C,0xE4,0x11,0xE5,0xFB,0xC1,0x19,0x1A,0x0A,0x52,0xEF,
+                      0xF6,0x9F,0x24,0x45,0xDF,0x4F,0x9B,0x17,0xAD,0x2B,0x41,0x7B,0xE6,0x6C,0x37,0x10};
+  cmac.update(omac, msg4, sizeof(msg4));
+  cmac.finalize(omac);
+  Serial.print("AES-CMAC: ");
+  print_bytes(omac,sizeof(omac));
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+}
