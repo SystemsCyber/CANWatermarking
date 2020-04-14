@@ -1,3 +1,45 @@
+## Example Serial Consol Output
+```
+Successful wakeUp(). I2C connections are good.
+Serial Number: 	012362826474A4F4EE
+Config Zone: 	Locked
+Data/OTP Zone: 	Locked
+Data Slot 0: 	Locked
+Plain AES Session Key: 
+8480031FDA8F46CBE887FFCAF4992348
+Own Public Key: 
+DE5A1C60F55C8157983728D69A1F40304EFEFC2F9EB52F8CDDAB01F5C02D08EDF36D0524B91C45885B4D1B559B82F09589BA5C6EF91C6FBB7C0C2F385A5C9E5B
+Transport Layer Control Received: 2042000AFF00D400
+RX transport message:
+PGN: D400, SA: 25, DA: 88, DLC: 66, Data: 4004CC486643B3B1654A622603E47BAD9343B50591B9F732D0DCE63A39A804A3F12D1482CF9B715F0630A20BFED88068816BF27E167CDD118F05B8AEA10E96DBB57E
+Data Security Message Found.
+Setting device_public_key memory.
+Set Key for CMAC 0
+Initializing CMAC
+Succesfully Calculated ECDH Shared Secret and Loaded into TempKey
+Encrypted AES Session Key: 
+217036281D1B3BEA1B46C9C17A2839A9
+Transport Layer Control Received: 20120003FF00D400
+Data Security Message Found.
+PGN: D400, SA: 25, DA: 88, DLC: 0, Data: 
+Data Security Message Found.
+PGN: D400, SA: 25, DA: 88, DLC: 0, Data: 
+Data Security Message Found.
+PGN: D400, SA: 25, DA: 88, DLC: 0, Data: 
+Data Security Message Found.
+PGN: D400, SA: 25, DA: 88, DLC: 18, Data: 1006672D4E85686D4FB5CAC955D49FAEF6C4
+Confirming Key Exchange. The following should match:
+436101C5972307902238
+436101C5972307902238
+CMAC Copy Finalize:
+6ABAA7A31ECE1C24A6EC1502EAED280E
+Sent 6 bytes of OMAC: 
+06056ABAA7A3
+CMAC Copy Finalize:
+CB5FC7233BE5FA6BC9189FEC950E4D5A
+Sent 6 bytes of OMAC: 
+0605CB5FC723
+```
 ## Example CAN Bus Output
 The following transcript was taken of a CAN Conditioner exchanging a key with a Secure Gateway
 The data was recorded uing the can-utils from SocketCAN built into a BeagleBone Black.
@@ -44,10 +86,10 @@ This is the encrypted session key that is transmitted over CAN to the Secure Gat
 
 ```
 can1  18EC2588   [8]  20 1C 00 04 FF 00 D4 00
-can1  18EB2588   [8]  01 1A 02 4C 77 FA AD 6F
-can1  18EB2588   [8]  02 DF D4 AE 6F 71 9D 71
-can1  18EB2588   [8]  03 01 E9 D0 64 42 54 8C
-can1  18EB2588   [8]  04 39 44 01 44 6A E0 C5
+can1  18EB2588   [8]  01 1A 02 21 70 36 28 1D
+can1  18EB2588   [8]  02 1B 3B EA 1B 46 C9 C1
+can1  18EB2588   [8]  03 7A 28 39 A9 43 61 01
+can1  18EB2588   [8]  04 C5 97 23 07 90 22 38
 ```
 
 The Secure Gateway decrypts the session key sent by the CAN Conditioner and encrypts the random seed sent with the last packet. 
@@ -55,19 +97,20 @@ The encrypted seed is sent back to the CAN Conditioner. Since the seed was only 
 
 ```
 can1  18EC8825   [8]  20 12 00 03 FF 00 D4 00
-can1  18EB8825   [8]  01 10 06 9F 75 6A 99 BC
-can1  18EB8825   [8]  02 51 86 32 6F C4 E7 8F
-can1  18EB8825   [8]  03 69 CB 98 97 00 20 00
+can1  18EB8825   [8]  01 10 06 67 2D 4E 85 68
+can1  18EB8825   [8]  02 6D 4F B5 CA C9 55 D4
+can1  18EB8825   [8]  03 9F AE F6 C4 00 20 00
 ```
   
 The CAN Conditioner now knows the gateway is ready to receive CMAC messages. The following message gets sent out periodically. The Gateway can calculate its own CMAC and compare the first 6 bytes to the transmitted shown. 
 
 ``` 
-can1  18D42588   [8]  06 05 99 2C 83 AE FC 9D
+can1  18D42588   [8]  06 05 6A BA A7 A3 1E CE
+
 ```
 
 A short time later:
 
 ```
-can1  18D42588   [8]  06 05 81 41 2F 84 47 13
+can1  18D42588   [8]  06 05 CB 5F C7 23 3B E5
 ```
