@@ -38,6 +38,8 @@ int current_sa = -1;
 #define DM18_PUBLIC_KEY_TYPE      0x04
 #define DM18_CMAC_TYPE            0x05
 #define DM18_SESSION_KEY          0x02
+#define DM18_CONFIRMATION_TYPE    0x06
+const char confirmation_code[6] = "start"; //zero at the end
 
 #define COMPONENT_ID_PGN          65259
 #define REQUEST_PGN               59904
@@ -80,7 +82,7 @@ int get_sa_index(uint8_t sa){
       next_source_address_index = 0;
     }
   }
-  Serial.printf("Index for %02X is %d\n",sa,sa_index);
+  //Serial.printf("Index for %02X is %d\n",sa,sa_index);
   return sa_index;
 }
 
@@ -142,14 +144,14 @@ void send_frame(uint32_t pgn, uint8_t dest, uint8_t src, uint8_t *data, uint8_t 
   CAN_message_t msg;
   msg.len = dlc & 0x0F;
   msg.id = priority << 26 ;
-  Serial.printf("PGN to send: %04X\n",pgn);
+  //Serial.printf("PGN to send: %04X\n",pgn);
   msg.id += pgn << 8;
   if (pgn < 0xF000){
     msg.id += dest << 8;
   }
   msg.id += src;
-  Serial.printf("Sending ID %08X ",msg.id);
-  print_bytes(data,8);
+  //Serial.printf("Sending ID %08X ",msg.id);
+  //print_bytes(data,8);
   memcpy(&msg.buf[0], data, dlc);
   msg.flags.extended = 1;
   vehicle_can.write(msg);
@@ -157,7 +159,6 @@ void send_frame(uint32_t pgn, uint8_t dest, uint8_t src, uint8_t *data, uint8_t 
 }
 
 void send_multi_frame(uint8_t dest, uint8_t src, uint8_t *data, uint8_t start_packet, uint8_t packets_to_send){  
-  Serial.printf("SA: %02X, DA: %02X\n",src,dest);
   for (uint8_t i = start_packet; i < packets_to_send; i++){
     uint8_t data_to_send[8];
     data_to_send[0] = i+1;
@@ -209,6 +210,28 @@ void send_session_key(uint8_t *encrypted_key, uint8_t *iv, uint8_t da){
   data_to_send[1] = DM18_SESSION_KEY;
   memcpy(&data_to_send[2], &encrypted_key[0], 16);
   memcpy(&data_to_send[18], &iv[0], 10);
+  uint8_t packets_to_send = sizeof(data_to_send)/7 + bool(sizeof(data_to_send)%7);
+  uint8_t setup_to_send[8];
+  setup_to_send[0] = CM_BAM;
+  setup_to_send[1] = sizeof(data_to_send) & 0xFF;
+  setup_to_send[2] = (sizeof(data_to_send) & 0xFF00) >> 8;
+  setup_to_send[3] = packets_to_send;
+  setup_to_send[4] = 0xFF; //SAE specified
+  setup_to_send[5] = (DM18_PGN & 0xFF);
+  setup_to_send[6] = (DM18_PGN & 0xFF00) >> 8;
+  setup_to_send[7] = (DM18_PGN & 0x030000) >> 16;
+  //BAM
+  send_frame(TP_CM_PGN, da, SELF_SOURCE_ADDR, setup_to_send, sizeof(setup_to_send), NORMAL_PRIORITY);
+  uint8_t start_packet = 0;
+  //Send to destination 
+  send_multi_frame(da, SELF_SOURCE_ADDR, data_to_send, start_packet, packets_to_send);
+}
+
+void send_key_confirmation(uint8_t *encrypted_msg, uint8_t da){
+  uint8_t data_to_send[18];
+  data_to_send[0] = 16; 
+  data_to_send[1] = DM18_CONFIRMATION_TYPE;
+  memcpy(&data_to_send[2], &encrypted_msg[0], 16);
   uint8_t packets_to_send = sizeof(data_to_send)/7 + bool(sizeof(data_to_send)%7);
   uint8_t setup_to_send[8];
   setup_to_send[0] = CM_BAM;
@@ -397,7 +420,7 @@ int parseJ1939(CAN_message_t msg){
     Serial.println("RX DATA_SECURITY_PGN");
     uint8_t msg_len = msg.buf[0];
     uint8_t msg_type = msg.buf[1];
-    if (msg_type == DM18_PUBLIC_KEY_TYPE){
+    if (msg_type == DM18_PUBLIC_KEY_TYPE && msg_len == 0){
       Serial.println("Sending Public Key.");
       send_public_key(sa);  
     }
