@@ -476,7 +476,13 @@ void update_cmac(uint8_t cmac_index, CAN_message_t msg) {
   cmac[cmac_index].update(omac[cmac_index], message_for_cmac, sizeof(message_for_cmac));
 }
 
-void send_cmac(uint8_t sa, uint8_t da, uint8_t *cmac){
+void send_cmac(uint8_t sa, uint8_t da, uint8_t cmac_index){
+//Make a copy to produce an intermediate result
+  memcpy(&cmac_copy[cmac_index], &cmac[cmac_index], sizeof(cmac[cmac_index]));
+  memcpy(&omac_copy[cmac_index], &omac[cmac_index], sizeof(omac[cmac_index]));
+  //Serial.println("CMAC Copy Finalize:");
+  cmac_copy[cmac_index].finalize(omac_copy[cmac_index]);
+  //print_bytes(omac_copy[i], sizeof(omac_copy[i]));
   CAN_message_t vehicle_msg;
   vehicle_msg.id = 0x00D40000; //DM18 Message with highest priority
   vehicle_msg.id += da << 8;
@@ -485,21 +491,14 @@ void send_cmac(uint8_t sa, uint8_t da, uint8_t *cmac){
   vehicle_msg.flags.extended = 1;
   vehicle_msg.buf[0] = 6; //Length
   vehicle_msg.buf[1] = DM18_CMAC_TYPE;
-  memcpy(&vehicle_msg.buf[2], cmac, 6);
+  memcpy(&vehicle_msg.buf[2], omac_copy[cmac_index], 6);
   vehicle_can.write(vehicle_msg);
   //Serial.print("Sent 6 bytes of OMAC: ");
   //print_bytes(vehicle_msg.buf, 6);
 }
 
 void compare_cmacs(uint8_t cmac_index, uint8_t *cmac_value) {
-  //Make a copy to produce an intermediate result
-  memcpy(&cmac_copy[cmac_index], &cmac[cmac_index], sizeof(cmac[cmac_index]));
-  memcpy(&omac_copy[cmac_index], &omac[cmac_index], sizeof(omac[cmac_index]));
-  //Serial.printf("CMAC Compare for %d:\n",cmac_index);
-  cmac_copy[cmac_index].finalize(omac_copy[cmac_index]);
-  //print_bytes(omac_copy[cmac_index], 6);
-  //print_bytes(cmac_value, 6);
-  send_cmac(self_source_addr, veh_source_addresses[cmac_index], omac_copy[cmac_index]);
+  send_cmac(self_source_addr, veh_source_addresses[cmac_index], cmac_index);
 
   if (!memcmp(omac_copy[cmac_index], cmac_value, 6)) {
     Serial.println("CMACs Matched.");

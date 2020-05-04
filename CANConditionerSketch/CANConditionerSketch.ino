@@ -62,27 +62,27 @@ uint8_t message[16];
 void setup(void) {
   gateway_sa = 37;
   
-  num_ecu_source_addresses = 1;
-  ecu_source_addresses[0] = 11; //Brake Controller
-  self_source_addr = 11+128; //Brake Controller CAN Conditioner
-  
-  num_veh_source_addresses = 10;
-  veh_source_addresses[0] = 249; // Diagnostic Tool
-  veh_source_addresses[1] = 37; //Gateway
-  veh_source_addresses[2] = 0; // Engine
-  veh_source_addresses[3] = 128+0; //Engine CAN Conditioner
-  veh_source_addresses[4] = 3; // Transmission
-  veh_source_addresses[5] = 128+3; //Transmission CAN Conditioner
-  veh_source_addresses[6] = 15; //retarder
-  veh_source_addresses[7] = 128+15; //Retarder CAN Conditioner
-  veh_source_addresses[8] = 49; // Body controller
-  veh_source_addresses[9] = 128+49; // Body controller CAN Conditioner
-  
-  EEPROM.put(EEPROM_SELF_SOURCE_ADDR,self_source_addr);
-  EEPROM.put(EEPROM_NUM_ECU_SA_ADDR,num_ecu_source_addresses);
-  EEPROM.put(EEPROM_NUM_VEH_SA_ADDR,num_veh_source_addresses);
-  EEPROM.put(EEPROM_ECU_ADDR,ecu_source_addresses);
-  EEPROM.put(EEPROM_VEH_ADDR,veh_source_addresses);
+//  num_ecu_source_addresses = 1;
+//  ecu_source_addresses[0] = 11; //Brake Controller
+//  self_source_addr = 11+128; //Brake Controller CAN Conditioner
+//  
+//  num_veh_source_addresses = 10;
+//  veh_source_addresses[0] = 249; // Diagnostic Tool
+//  veh_source_addresses[1] = 37; //Gateway
+//  veh_source_addresses[2] = 0; // Engine
+//  veh_source_addresses[3] = 128+0; //Engine CAN Conditioner
+//  veh_source_addresses[4] = 3; // Transmission
+//  veh_source_addresses[5] = 128+3; //Transmission CAN Conditioner
+//  veh_source_addresses[6] = 15; //retarder
+//  veh_source_addresses[7] = 128+15; //Retarder CAN Conditioner
+//  veh_source_addresses[8] = 49; // Body controller
+//  veh_source_addresses[9] = 128+49; // Body controller CAN Conditioner
+//  
+//  EEPROM.put(EEPROM_SELF_SOURCE_ADDR,self_source_addr);
+//  EEPROM.put(EEPROM_NUM_ECU_SA_ADDR,num_ecu_source_addresses);
+//  EEPROM.put(EEPROM_NUM_VEH_SA_ADDR,num_veh_source_addresses);
+//  EEPROM.put(EEPROM_ECU_ADDR,ecu_source_addresses);
+//  EEPROM.put(EEPROM_VEH_ADDR,veh_source_addresses);
 
   load_source_addresses();
   vehicle_can.begin();
@@ -94,7 +94,7 @@ void setup(void) {
   ecu_can.begin();
   ecu_can.setBaudRate(250000);
   //ecu_can.setMaxMB(64);
-  ecu_can.enableFIFO();
+  //ecu_can.enableFIFO();
 
   //  for (int i = 8; i<64; i++){
   //    vehicle_can.setMB(i,TX,EXT);
@@ -246,7 +246,6 @@ void setup(void) {
     if (vehicle_can.read(vehicle_msg)) {
       //ecu_can.write(vehicle_msg);
       int num_bytes = parseJ1939(vehicle_msg);
-        uint8_t msg_len = j1939_data[0];
       int veh_cmac_index = get_cmac_index(j1939_sa);
       if (num_bytes > 0){
         if (j1939_pgn == DM18_PGN) {
@@ -325,11 +324,11 @@ void loop() {
     uint8_t ecu_sa = ecu_msg.id & 0xFF;
     bool permitted_sa = false;
     for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
-      if (ecu_sa == ecu_source_addresses[i]){
+      if (ecu_sa == 0x0B){  //ecu_source_addresses[i]){
         permitted_sa = true;
         //TODO add check for valid PGNs
-        update_cmac(i,ecu_msg);
         vehicle_can.write(ecu_msg);
+        update_cmac(i,ecu_msg);
         break;
       }
     }
@@ -337,20 +336,16 @@ void loop() {
       // Send DM message for bad SA
       Serial.println("Found Bad Source Address.");
     }
-  }
-  if (cmac_tx_timer >= 1000) {
+    if (cmac_tx_timer >= 1000) {
     cmac_tx_timer = 0;
     for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
-      //Make a copy to produce an intermediate result
-      memcpy(&cmac_copy[i], &cmac[i], sizeof(cmac[i]));
-      memcpy(&omac_copy[i], &omac[i], sizeof(omac[i]));
-      //Serial.println("CMAC Copy Finalize:");
-      cmac_copy[i].finalize(omac_copy[i]);
-      //print_bytes(omac_copy[i], sizeof(omac_copy[i]));
-      send_cmac(self_source_addr, GATEWAY_SOURCE_ADDR, omac_copy[i]);
+      
+      send_cmac(self_source_addr, GATEWAY_SOURCE_ADDR, i);
       GREEN_LED_state = !GREEN_LED_state;
     }
   }
+  }
+  
   digitalWrite(RED_LED, RED_LED_state);
   digitalWrite(GREEN_LED, GREEN_LED_state);
   digitalWrite(YELLOW_LED, YELLOW_LED_state);
