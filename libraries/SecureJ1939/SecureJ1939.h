@@ -95,10 +95,11 @@ void load_source_addresses(){
 }
 
 int get_cmac_index(uint8_t sa){
-  for (int i = 0; i < num_veh_source_addresses; i++)
-    if (veh_source_addresses[i] == (sa & 0x7F)){
+  for (int i = 0; i < num_veh_source_addresses; i++){
+    if (veh_source_addresses[i] == (sa & 0xFF)){
       return i;
     }
+  }
   return -1;
 }
 
@@ -166,6 +167,7 @@ void setup_aes_key(uint8_t cmac_index, uint8_t *init_vector, uint8_t *aes_key){
   memset(omac[cmac_index],0,sizeof(omac[cmac_index]));
   cmac[cmac_index].update(omac[cmac_index],init_vector,sizeof(init_vector));
   cmac_setup[cmac_index] = true;
+  Serial.printf("Setting cmac_setup[%d] to true.\n",cmac_index);
   cmac_timer[cmac_index] = 0;
 }
 
@@ -467,6 +469,23 @@ int parseJ1939(CAN_message_t msg){
   
   return dlc; 
 }
+
+void setup_CMAC(uint8_t sa_index){
+  cmac_setup[sa_index] = false;
+  CAN_message_t msg;
+  sa = (veh_source_addresses[sa_index] & 0x7F) + 0x80;
+  msg.len = 2;
+  msg.id = 6 << 26 ;
+  msg.id += DM18_PGN << 8;
+  msg.id += sa << 8; // Destination address
+  msg.id += self_source_addr;
+  msg.buf[0] = 0;
+  msg.buf[1] = 0x0F; // Abort
+  Serial.printf("Sending ID %08X ",msg.id);
+  print_bytes(msg.buf,msg.len);
+  msg.flags.extended = 1;
+  vehicle_can.write(msg);
+};
 
 void update_cmac(uint8_t cmac_index, CAN_message_t msg) {
   memset(message_for_cmac, 0, sizeof(message_for_cmac));

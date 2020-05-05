@@ -337,15 +337,16 @@ void loop() {
       Serial.println("Found Bad Source Address.");
     }
     if (cmac_tx_timer >= 1000) {
-    cmac_tx_timer = 0;
-    for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
-      
-      send_cmac(self_source_addr, GATEWAY_SOURCE_ADDR, i);
-      GREEN_LED_state = !GREEN_LED_state;
+      cmac_tx_timer = 0;
+      for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
+        
+        send_cmac(self_source_addr, GATEWAY_SOURCE_ADDR, i);
+        GREEN_LED_state = !GREEN_LED_state;
+      }
     }
+    
   }
-  }
-  
+ 
   digitalWrite(RED_LED, RED_LED_state);
   digitalWrite(GREEN_LED, GREEN_LED_state);
   digitalWrite(YELLOW_LED, YELLOW_LED_state);
