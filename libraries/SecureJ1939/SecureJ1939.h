@@ -247,7 +247,7 @@ void send_session_key_request(uint8_t da){
   send_frame(DM18_PGN, da, self_source_addr, data_to_send, sizeof(data_to_send), NORMAL_PRIORITY);
 }
 
-void send_session_key(uint8_t *encrypted_key, uint8_t *iv, uint8_t da){
+void send_session_key(uint8_t *encrypted_key, uint8_t *iv, uint8_t da, uint8_t s_addr){
   uint8_t data_to_send[28];
   data_to_send[0] = 26; 
   data_to_send[1] = DM18_SESSION_KEY;
@@ -264,10 +264,10 @@ void send_session_key(uint8_t *encrypted_key, uint8_t *iv, uint8_t da){
   setup_to_send[6] = (DM18_PGN & 0xFF00) >> 8;
   setup_to_send[7] = (DM18_PGN & 0x030000) >> 16;
   //BAM
-  send_frame(TP_CM_PGN, da, self_source_addr, setup_to_send, sizeof(setup_to_send), NORMAL_PRIORITY);
+  send_frame(TP_CM_PGN, da, s_addr, setup_to_send, sizeof(setup_to_send), NORMAL_PRIORITY);
   uint8_t start_packet = 0;
   //Send to destination 
-  send_multi_frame(da, self_source_addr, data_to_send, start_packet, packets_to_send);
+  send_multi_frame(da, s_addr, data_to_send, start_packet, packets_to_send);
 }
 
 void send_key_confirmation(uint8_t *encrypted_msg, uint8_t da){
@@ -371,7 +371,7 @@ int parseJ1939(CAN_message_t msg){
   else if (da == self_source_addr) da_index = 1;
   else if (da == (self_source_addr & 0x7F)) da_index = 2;
   else {
-    Serial.printf("Message for %02X not in da_index\n",da);
+    //Serial.printf("Message for %02X not in da_index\n",da);
     return -1; // The message is not for us. 
   }
 

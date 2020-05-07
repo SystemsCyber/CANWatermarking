@@ -1,7 +1,18 @@
-#define SELF_SOURCE_ADDR  128+11
+
+#define CMAC_SEND_TIME_MS  1000
+
+#define CMAC_PAD_TIME_MICROS 1000 //Micros
+#define MIN_CAN_TIME_SPACING 800 //Micros
+#define SEND_DURING_PAUSE true
+#define FIFO_ENABLED true  
+#define NUM_TX_MAILBOXES 2
+#define NUM_RX_MAILBOXES 32
+#define SEQ_MSG false
+
 #include "SecureJ1939.h"
 #include <i2c_driver_wire.h>
 #include <SparkFun_ATECCX08a_Arduino_Library.h>
+
 
 #define RED_LED    3
 #define GREEN_LED  2
@@ -25,7 +36,8 @@ uint32_t ecu_rx_count;
 uint8_t gateway_sa;
 
 elapsedMillis vehicle_rx_timer;
-elapsedMillis ecu_rx_timer;
+elapsedMicros ecu_rx_timer;
+elapsedMicros delay_timer;
 elapsedMillis cmac_tx_timer;
 
 void atecc_error_flash() {
@@ -46,25 +58,26 @@ void atecc_error_flash() {
   }
 }
 
-int ecu_callback() {
-  ecu_can.events();
-  return 1;
-}
-int vehicle_callback() {
-  vehicle_can.events();
-  return 1;
-
-}
+//int ecu_callback() {
+//  ecu_can.events();
+//  return 1;
+//}
+//int vehicle_callback() {
+//  vehicle_can.events();
+//  return 1;
+//
+//}
 
 
 uint8_t message[16];
 
 void setup(void) {
   gateway_sa = 37;
-  
+
+//  self_source_addr = 11+128; //Engine Controller CAN Conditioner
 //  num_ecu_source_addresses = 1;
-//  ecu_source_addresses[0] = 11; //Brake Controller
-//  self_source_addr = 11+128; //Brake Controller CAN Conditioner
+//  ecu_source_addresses[0] = 11; //Engine Controller
+//  //ecu_source_addresses[1] = 15; //Retarder
 //  
 //  num_veh_source_addresses = 10;
 //  veh_source_addresses[0] = 249; // Diagnostic Tool
@@ -73,8 +86,8 @@ void setup(void) {
 //  veh_source_addresses[3] = 128+0; //Engine CAN Conditioner
 //  veh_source_addresses[4] = 3; // Transmission
 //  veh_source_addresses[5] = 128+3; //Transmission CAN Conditioner
-//  veh_source_addresses[6] = 15; //retarder
-//  veh_source_addresses[7] = 128+15; //Retarder CAN Conditioner
+//  veh_source_addresses[6] = 33; // Body Controller
+//  veh_source_addresses[7] = 128+33; //Retarder CAN Conditioner
 //  veh_source_addresses[8] = 49; // Body controller
 //  veh_source_addresses[9] = 128+49; // Body controller CAN Conditioner
 //  
@@ -87,19 +100,23 @@ void setup(void) {
   load_source_addresses();
   vehicle_can.begin();
   vehicle_can.setBaudRate(250000);
-  //vehicle_can.setMaxMB(16);
-  vehicle_can.enableFIFO();
+  vehicle_can.setMaxMB(NUM_TX_MAILBOXES + NUM_RX_MAILBOXES);
+  if (FIFO_ENABLED) vehicle_can.enableFIFO();
   //vehicle_can.enableFIFOInterrupt();
 
   ecu_can.begin();
   ecu_can.setBaudRate(250000);
-  //ecu_can.setMaxMB(64);
-  //ecu_can.enableFIFO();
+  ecu_can.setMaxMB(NUM_TX_MAILBOXES+NUM_RX_MAILBOXES);
+  if (FIFO_ENABLED) ecu_can.enableFIFO();
 
-  //  for (int i = 8; i<64; i++){
-  //    vehicle_can.setMB(i,TX,EXT);
-  //    ecu_can.setMB(i,TX,EXT);
-  //  }
+  for (int i = 0; i<NUM_RX_MAILBOXES; i++){
+    vehicle_can.setMB(i,RX,EXT);
+    ecu_can.setMB(i,RX,EXT);
+  }
+  for (int i = NUM_RX_MAILBOXES; i<(NUM_TX_MAILBOXES + NUM_RX_MAILBOXES); i++){
+    vehicle_can.setMB(i,TX,EXT);
+    ecu_can.setMB(i,TX,EXT);
+  }
 
   Serial5.begin(9600);
   pinMode(RED_LED, OUTPUT);
@@ -221,8 +238,9 @@ void setup(void) {
               Serial.println("Encrypted AES Session Key: ");
               print_bytes(encrypted_key, sizeof(encrypted_key) );
               setup_aes_key(i, init_vector, aes_key); 
+              send_session_key(encrypted_key, init_vector, gateway_sa, (ecu_source_addresses[i] & 0x7f)+0x80);
             }
-            send_session_key(encrypted_key, init_vector, gateway_sa);
+            
             received_public_key = true;
             break;
           }
@@ -234,61 +252,69 @@ void setup(void) {
   
   delay(5);
 
-
-  wait_timer = 0;
-  bool matching = false;
-  while (matching == false) {
-    vehicle_can.events();
-    if (wait_timer >= 2000) {
-      wait_timer = 0;
-      send_session_key(encrypted_key, init_vector, gateway_sa);
-    }
-    if (vehicle_can.read(vehicle_msg)) {
-      //ecu_can.write(vehicle_msg);
-      int num_bytes = parseJ1939(vehicle_msg);
-      int veh_cmac_index = get_cmac_index(j1939_sa);
-      if (num_bytes > 0){
-        if (j1939_pgn == DM18_PGN) {
-          Serial.println("Data Security Message Found.");
-          Serial.printf("PGN: %04X, SA: %02X, DA: %02X, DLC: %d, Data: ", j1939_pgn, j1939_sa, j1939_da, num_bytes);
-          print_bytes(j1939_data, num_bytes);
-          uint8_t msg_len = j1939_data[0];
-          uint8_t msg_type = j1939_data[1];
-          if (msg_type == DM18_CONFIRMATION_TYPE) {
-            memcpy(&message[0], &j1939_data[2], sizeof(message));
-            print_bytes(message,sizeof(message));
-            atecc.ECDH(device_public_key[veh_cmac_index], ECDH_OUTPUT_IN_TEMPKEY, 0x0000);
-            if (atecc.AES_ECB_decrypt(message,0xFFFF, false)){
-              Serial.println("Confirming Key Exchange. The following should match:");
-              print_bytes(atecc.AES_buffer, 10);
-              print_bytes(init_vector, 10);
-              matching = !memcmp(atecc.AES_buffer, init_vector, 10);
-              if (matching) {
-                break;
-              }
-              else {
-                Serial.println("Keys did not match.");
-                delay(100);
-                digitalWrite(RED_LED, HIGH);
-                digitalWrite(YELLOW_LED, HIGH);
-                delay(100);
-                digitalWrite(RED_LED, LOW);
-                digitalWrite(YELLOW_LED, LOW);
-              }  
-            }
-            else
-            {
-              Serial.println("Failed to execute decrypt");
-            }
-          }
+  //for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
+     
+    wait_timer = 0;
+    bool matching = false;
+    while (matching == false) {
+      vehicle_can.events();
+      if (wait_timer >= 2000) {
+        wait_timer = 0;
+        for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
+          send_session_key(encrypted_key, init_vector, gateway_sa, (ecu_source_addresses[i] & 0x7f)+0x80);
         }
       }
-    } // end vehicle read message
-  }
+      if (vehicle_can.read(vehicle_msg)) {
+        //ecu_can.write(vehicle_msg);
+        int num_bytes = parseJ1939(vehicle_msg);
+        int veh_cmac_index = get_cmac_index(j1939_sa);
+        
+        //if (j1939_sa == ((ecu_source_addresses[i]&0x7F) + 0x80)){
+          if (j1939_pgn == DM18_PGN ) {
+            Serial.println("Data Security Message Found.");
+            Serial.printf("PGN: %04X, SA: %02X, DA: %02X, DLC: %d, Data: ", j1939_pgn, j1939_sa, j1939_da, num_bytes);
+            print_bytes(j1939_data, num_bytes);
+            uint8_t msg_len = j1939_data[0];
+            uint8_t msg_type = j1939_data[1];
+            if (msg_type == DM18_CONFIRMATION_TYPE) {
+              memcpy(&message[0], &j1939_data[2], sizeof(message));
+              print_bytes(message,sizeof(message));
+              atecc.ECDH(device_public_key[veh_cmac_index], ECDH_OUTPUT_IN_TEMPKEY, 0x0000);
+              if (atecc.AES_ECB_decrypt(message,0xFFFF, false)){
+                Serial.println("Confirming Key Exchange. The following should match:");
+                print_bytes(atecc.AES_buffer, 10);
+                print_bytes(init_vector, 10);
+                matching = !memcmp(atecc.AES_buffer, init_vector, 10);
+                if (matching) {
+                  memcpy(&cmac_ready[0],&cmac_setup[0],sizeof(cmac_setup));
+                  break;
+                }
+                else {
+                  Serial.println("Keys did not match.");
+                  delay(100);
+                  digitalWrite(RED_LED, HIGH);
+                  digitalWrite(YELLOW_LED, HIGH);
+                  delay(100);
+                  digitalWrite(RED_LED, LOW);
+                  digitalWrite(YELLOW_LED, LOW);
+                }  
+              }
+              else
+              {
+                Serial.println("Failed to execute decrypt");
+              }
+            }
+         // }
+        }
+      } // end vehicle read message
+    }
+  //}
   digitalWrite(GREEN_LED, HIGH);
   digitalWrite(LED_BUILTIN, LOW);
   Serial.println("Starting Loop.");
-  delay(10);
+  //delay(10);
+  
+  
 }
 
 void loop() {
@@ -302,51 +328,55 @@ void loop() {
     ecu_can.write(vehicle_msg);
     AMBER_LED_state = !AMBER_LED_state;
     int num_bytes = parseJ1939(vehicle_msg);
-    if (num_bytes > 0) {
-      if (num_bytes > 8) {
-        Serial.println("RX transport message:");
-        Serial.printf("PGN: %04X, SA: %02X, DA: %02X, DLC: %d, Data: ", j1939_pgn, j1939_sa, j1939_da, num_bytes);
-        print_bytes(j1939_data, num_bytes);
-      }
+//    if (num_bytes > 0) {
+//      if (num_bytes > 8) {
+//        Serial.println("RX transport message:");
+//        Serial.printf("PGN: %04X, SA: %02X, DA: %02X, DLC: %d, Data: ", j1939_pgn, j1939_sa, j1939_da, num_bytes);
+//        print_bytes(j1939_data, num_bytes);
+//      }
       if (j1939_pgn == DATA_SECURITY_PGN) {
-        Serial.println("RX DATA_SECURITY_PGN");
+        //Serial.println("RX DATA_SECURITY_PGN");
         uint8_t msg_len = j1939_data[0];
         uint8_t msg_type = j1939_data[1];
         if (msg_type == DM18_RESET_TYPE && j1939_sa == gateway_sa) {
           setup();
         }
       }
-    }
+//    }
   }
-  if ( ecu_can.read(ecu_msg) ) {
+  if ( ecu_can.read(ecu_msg) && ecu_rx_timer >= MIN_CAN_TIME_SPACING) {
     ecu_rx_timer = 0;
     ecu_rx_count++;
+    YELLOW_LED_state = !YELLOW_LED_state;
     uint8_t ecu_sa = ecu_msg.id & 0xFF;
-    bool permitted_sa = false;
-    for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
-      if (ecu_sa == 0x0B){  //ecu_source_addresses[i]){
-        permitted_sa = true;
-        //TODO add check for valid PGNs
-        vehicle_can.write(ecu_msg);
-        update_cmac(i,ecu_msg);
-        break;
+    int ecu_index = -1;
+    for (int i = 0; i < num_ecu_source_addresses; i++){
+      if (ecu_source_addresses[i] == ecu_sa){
+        ecu_index = i;
       }
     }
-    if (permitted_sa == false){
+    if (ecu_index < 0){
       // Send DM message for bad SA
       Serial.println("Found Bad Source Address.");
     }
-    if (cmac_tx_timer >= 1000) {
-      cmac_tx_timer = 0;
-      for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
-        
-        send_cmac(self_source_addr, GATEWAY_SOURCE_ADDR, i);
-        GREEN_LED_state = !GREEN_LED_state;
+    else {
+      if (cmac_ready[ecu_index] ){
+        if (SEQ_MSG) ecu_msg.seq = 1;
+        vehicle_can.write(ecu_msg);
+        vehicle_can.events();
+        update_cmac(ecu_index,ecu_msg);
+        if (cmac_tx_timer >= CMAC_SEND_TIME_MS) {
+          cmac_tx_timer = 0;
+          delayMicroseconds(CMAC_PAD_TIME_MICROS);
+          send_cmac(ecu_sa+0x80, GATEWAY_SOURCE_ADDR, ecu_index);
+          if (SEND_DURING_PAUSE) vehicle_can.events();
+          delayMicroseconds(CMAC_PAD_TIME_MICROS);
+          GREEN_LED_state = !GREEN_LED_state;
+        }  
       }
     }
-    
   }
- 
+      
   digitalWrite(RED_LED, RED_LED_state);
   digitalWrite(GREEN_LED, GREEN_LED_state);
   digitalWrite(YELLOW_LED, YELLOW_LED_state);
