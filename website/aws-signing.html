@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><head>
+    <link href="https://d3oia8etllorh5.cloudfront.net/20191106223759/css/bootstrap.min.css" rel="stylesheet"
+        media="screen" />
+    <link href="https://d3oia8etllorh5.cloudfront.net/20191106223759/css/cognito-login.css" rel="stylesheet"
+        media="screen" />
+    
+    <title>Signin</title>
+
+    <script src="https://d3oia8etllorh5.cloudfront.net/20191106223759/js/amazon-cognito-advanced-security-data.min.js" ></script>
+    <script>
+    function getAdvancedSecurityData(formReference) {
+        if (typeof AmazonCognitoAdvancedSecurityData === "undefined") {
+            return true;
+        }
+
+        // UserpoolId is not available on frontend for springboard. We do not use userPoolId
+        // anyway other than put in context data. 
+        var userPoolId = "";
+        var clientId = getUrlParameter("client_id");
+
+        var username = "";
+        var usernameInput = document.getElementsByName("username")[0];
+        if (usernameInput && usernameInput.value) {
+            username = usernameInput.value;
+        }
+
+        var asfData = AmazonCognitoAdvancedSecurityData.getData(username, userPoolId, clientId);
+        if (typeof asfData === "undefined") {
+            return true;
+        }
+
+        if (formReference && formReference.cognitoAsfData) {
+            formReference.cognitoAsfData.value = asfData
+        }
+
+        return true;
+    }
+
+    function getUrlParameter(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        var results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    }
+
+    function onSubmit(evt, formRef) {
+        formRef.querySelector('button[type="submit"]').disabled = true;
+        if (!!formRef.submitted) {
+            evt.preventDefault();
+            return false;
+        } else {
+            formRef.submitted = true;
+            return getAdvancedSecurityData(formRef);
+        }
+    }
+</script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head></head>
+<body>
+    <div class="container">
+        <div class="modal-dialog">
+            <div class="modal-content background-customizable modal-content-mobile visible-xs visible-sm">
+                <div><div>
+                    <div class="banner-customizable">
+                        <center>
+                            
+                        </center>
+                    </div>
+                </div></div>
+                <div class="modal-body">
+                    <div><div>
+    
+</div></div>
+                    <div>
+                        <div><div>
+    
+</div></div>
+                        <div><div>
+    
+</div></div>
+                        <div>
+                            
+                            <div><div>
+    
+        <Span class="textDescription-customizable ">Sign in with your username and password</Span>
+        <form action="/login?client_id=34084mof96h6lj1vs55ijafer&amp;response_type=token&amp;scope=email+openid&amp;redirect_uri=https://simple.auth.us-east-1.amazoncognito.com/" method="POST" name="cognitoSignInForm"
+              class="cognito-asf" onsubmit="getAdvancedSecurityData(this);"><input type="hidden" name="_csrf" value="dfcd3a0f-90ce-4acf-86c7-28399a482fb6"/>
+
+            
+
+            
+            <label for="signInFormUsername" class="label-customizable">Username</label>
+            <div><input id="signInFormUsername" name="username" type="text" class="form-control inputField-customizable"
+                   placeholder="Username" autocapitalize="none" required></div>
+
+            <label for="signInFormPassword" class="label-customizable">Password</label>
+            <div><input id="signInFormPassword" name="password" type="password" class="form-control inputField-customizable"
+                   placeholder="Password"
+                   required></div>
+            <input type="hidden" class="form-control inputField-customizable" name="cognitoAsfData"/>
+            <a class="redirect-customizable" href="/forgotPassword?client_id=34084mof96h6lj1vs55ijafer&amp;response_type=token&amp;scope=email+openid&amp;redirect_uri=https://simple.auth.us-east-1.amazoncognito.com/">Forgot your password?</a>
+            <input name="signInSubmitButton" type="Submit" value="Sign in"
+                   class="btn btn-primary submitButton-customizable" aria-label="submit"/>
+            <br/>
+            <div>
+                <p class="redirect-customizable"><span>Need an account?</span>&nbsp;<a
+                        href="/signup?client_id=34084mof96h6lj1vs55ijafer&amp;response_type=token&amp;scope=email+openid&amp;redirect_uri=https://simple.auth.us-east-1.amazoncognito.com/">Sign up</a></p>
+            </div>
+        </form>
+    
+</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+
+            <div class="modal-content background-customizable modal-content-mobile visible-md visible-lg">
+                <div><div>
+                    <div class="banner-customizable">
+                        <center>
+                            
+                        </center>
+                    </div>
+                </div></div>
+                <div class="modal-body">
+                    <div><div>
+    
+</div></div>
+                    <div>
+                        <div>
+                            <div><div>
+    
+</div></div>
+                            <div><div>
+    
+</div></div>
+                        </div>
+                        <div>
+                            <div><div>
+    
+        <Span class="textDescription-customizable ">Sign in with your username and password</Span>
+        <form action="/login?client_id=34084mof96h6lj1vs55ijafer&amp;response_type=token&amp;scope=email+openid&amp;redirect_uri=https://simple.auth.us-east-1.amazoncognito.com/" method="POST" name="cognitoSignInForm"
+              class="cognito-asf" onsubmit="getAdvancedSecurityData(this);"><input type="hidden" name="_csrf" value="dfcd3a0f-90ce-4acf-86c7-28399a482fb6"/>
+
+            
+
+            
+            <label for="signInFormUsername" class="label-customizable">Username</label>
+            <div><input id="signInFormUsername" name="username" type="text" class="form-control inputField-customizable"
+                   placeholder="Username" autocapitalize="none" required></div>
+
+            <label for="signInFormPassword" class="label-customizable">Password</label>
+            <div><input id="signInFormPassword" name="password" type="password" class="form-control inputField-customizable"
+                   placeholder="Password"
+                   required></div>
+            <input type="hidden" class="form-control inputField-customizable" name="cognitoAsfData"/>
+            <a class="redirect-customizable" href="/forgotPassword?client_id=34084mof96h6lj1vs55ijafer&amp;response_type=token&amp;scope=email+openid&amp;redirect_uri=https://simple.auth.us-east-1.amazoncognito.com/">Forgot your password?</a>
+            <input name="signInSubmitButton" type="Submit" value="Sign in"
+                   class="btn btn-primary submitButton-customizable" aria-label="submit"/>
+            <br/>
+            <div>
+                <p class="redirect-customizable"><span>Need an account?</span>&nbsp;<a
+                        href="/signup?client_id=34084mof96h6lj1vs55ijafer&amp;response_type=token&amp;scope=email+openid&amp;redirect_uri=https://simple.auth.us-east-1.amazoncognito.com/">Sign up</a></p>
+            </div>
+        </form>
+    
+</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://d3oia8etllorh5.cloudfront.net/20191106223759/js/jquery-3.4.1.min.js" ></script>
+    <script>
+    var $inputs = $(":input");
+    $inputs.on('input',function() {
+        $('input[name="' + this.name + '"]').val($(this).val());
+    });
+</script>
+</body>
+
+</html>
