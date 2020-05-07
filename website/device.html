@@ -13,7 +13,7 @@
                     <h4 class="modal-title" id="myModalLabel">Your Auth Token</h4>
                 </div>
                 <div class="modal-body">
-                    <textarea class="authToken"></textarea>
+                    <textarea class="authToken" id='authToken'></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
@@ -21,13 +21,22 @@
             </div>
         </div>
     </div>
-
+    <a href="signin.html">Sign in.</a>
 
     <script src="js/vendor/jquery-3.1.0.js"></script>
     <script src="js/vendor/aws-cognito-sdk.min.js"></script>
     <script src="js/vendor/amazon-cognito-identity.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/cognito-auth.js"></script>
+    <script>
+        $(document).ready( function(){
+            console.log("authToken: ");
+            console.log(CANConditioner.authToken);
+            CANConditioner.authToken.resolve('fulfilled').then(function(value){console.log(value);});
+
+        });
+        
+    </script>
 </body>
 
 </html>

@@ -108,7 +108,24 @@ var CANConditioner = window.CANConditioner || {};
         $('#signinForm').submit(handleSignin);
         $('#registrationForm').submit(handleRegister);
         $('#verifyForm').submit(handleVerify);
+        $('#recoverForm').submit(handleRecover);
+        
     });
+
+    function handleRecover(event) {
+        var email = $('#emailInputRecover').val();
+        var phoneNumber = $('#phonenumberInputRecover').val();
+        event.preventDefault();
+        signin(email, password,
+            function signinSuccess() {
+                console.log('Successfully Logged In');
+                window.location.href = 'device.html';
+            },
+            function signinError(err) {
+                alert(err);
+            }
+        );
+    }
 
     function handleSignin(event) {
         var email = $('#emailInputSignin').val();
