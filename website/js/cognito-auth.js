@@ -19,6 +19,7 @@ var CANConditioner = window.CANConditioner || {};
         return;
     }
 
+
     userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
     if (typeof AWSCognito !== 'undefined') {
@@ -108,8 +109,7 @@ var CANConditioner = window.CANConditioner || {};
         $('#signinForm').submit(handleSignin);
         $('#registrationForm').submit(handleRegister);
         $('#verifyForm').submit(handleVerify);
-        $('#recoverForm').submit(handleRecover);
-        
+        $('#recoverForm').submit(handleRecover);  
     });
 
     function handleRecover(event) {
