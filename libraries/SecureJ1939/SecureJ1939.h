@@ -24,10 +24,14 @@ uint8_t cmac_data[NUM_SOURCE_ADDRESSES][CMAC_BLOCK_SIZE];
 uint8_t cmac_keys[NUM_SOURCE_ADDRESSES][AES_BLOCK_SIZE];
 uint8_t omac[NUM_SOURCE_ADDRESSES][AES_BLOCK_SIZE];
 uint8_t omac_copy[NUM_SOURCE_ADDRESSES][AES_BLOCK_SIZE];
+uint32_t cmac_counter[NUM_SOURCE_ADDRESSES];
+uint32_t cmac_success_counter[NUM_SOURCE_ADDRESSES];
+uint32_t cmac_error_counter[NUM_SOURCE_ADDRESSES];
 OMAC cmac[NUM_SOURCE_ADDRESSES];
 OMAC cmac_copy[NUM_SOURCE_ADDRESSES];
 AES128 cmac_cipher[NUM_SOURCE_ADDRESSES];
 bool cmac_setup[NUM_SOURCE_ADDRESSES];
+bool cmac_ready[NUM_SOURCE_ADDRESSES];
 elapsedMillis cmac_timer[NUM_SOURCE_ADDRESSES];
 uint8_t next_source_address_index = 0;
 int current_sa = -1;
@@ -165,10 +169,14 @@ void setup_aes_key(uint8_t cmac_index, uint8_t *init_vector, uint8_t *aes_key){
   Serial.println("Initializing CMAC");
   cmac[cmac_index].initFirst(omac[cmac_index]);
   memset(omac[cmac_index],0,sizeof(omac[cmac_index]));
-  cmac[cmac_index].update(omac[cmac_index],init_vector,sizeof(init_vector));
+  //cmac[cmac_index].update(omac[cmac_index],init_vector,sizeof(init_vector));
   cmac_setup[cmac_index] = true;
   Serial.printf("Setting cmac_setup[%d] to true.\n",cmac_index);
   cmac_timer[cmac_index] = 0;
+  cmac_counter[cmac_index] = 0;
+  cmac_error_counter[cmac_index] = 0;
+  cmac_success_counter[cmac_index] = 0;
+
 }
 
 
@@ -218,7 +226,6 @@ void send_public_key_request(uint8_t da){
 }
 
 void send_public_key(uint8_t da){
-  
   uint8_t data_to_send[66];
   data_to_send[0] = 64; 
   data_to_send[1] = DM18_PUBLIC_KEY_TYPE;
@@ -510,8 +517,13 @@ void send_cmac(uint8_t sa, uint8_t da, uint8_t cmac_index){
   vehicle_msg.flags.extended = 1;
   vehicle_msg.buf[0] = 6; //Length
   vehicle_msg.buf[1] = DM18_CMAC_TYPE;
-  memcpy(&vehicle_msg.buf[2], omac_copy[cmac_index], 6);
+  if (SEQ_MSG) vehicle_msg.seq = 1;
+  memcpy(&vehicle_msg.buf[2], &omac_copy[cmac_index], 6);
   vehicle_can.write(vehicle_msg);
+  memset(omac[cmac_index],0,sizeof(omac[cmac_index]));
+  memcpy(&omac[cmac_index][0], &cmac_counter[cmac_index], 4);
+  cmac_counter[cmac_index]++;
+  
   //Serial.print("Sent 6 bytes of OMAC: ");
   //print_bytes(vehicle_msg.buf, 6);
 }
@@ -520,9 +532,11 @@ void compare_cmacs(uint8_t cmac_index, uint8_t *cmac_value) {
   send_cmac(self_source_addr, veh_source_addresses[cmac_index], cmac_index);
 
   if (!memcmp(omac_copy[cmac_index], cmac_value, 6)) {
-    Serial.println("CMACs Matched.");
+    cmac_success_counter[cmac_index]++;
+    Serial.printf("%8d CMACs for SA %02X Idx %d Matched.\n",cmac_success_counter[cmac_index],veh_source_addresses[cmac_index],cmac_index);
   }
   else {
-    Serial.println("CMACs did not match.");
+    cmac_error_counter[cmac_index]++;
+    Serial.printf("CMAC %d did not match: %d\n",cmac_index,cmac_error_counter[cmac_index]);
   }
 }
