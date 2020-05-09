@@ -5,13 +5,14 @@
 #define MIN_CAN_TIME_SPACING 800 //Micros
 #define SEND_DURING_PAUSE true
 #define FIFO_ENABLED true  
-#define NUM_TX_MAILBOXES 2
-#define NUM_RX_MAILBOXES 32
-#define SEQ_MSG false
+#define SEQ_MSG true
 
 #include "SecureJ1939.h"
 #include <i2c_driver_wire.h>
 #include <SparkFun_ATECCX08a_Arduino_Library.h>
+
+#define NUM_TX_MAILBOXES 16
+#define NUM_RX_MAILBOXES NUM_SOURCE_ADDRESSES
 
 
 #define RED_LED    3
@@ -33,7 +34,6 @@ boolean AMBER_LED_state;
 
 uint32_t vehicle_rx_count;
 uint32_t ecu_rx_count;
-uint8_t gateway_sa;
 
 elapsedMillis vehicle_rx_timer;
 elapsedMicros ecu_rx_timer;
@@ -72,8 +72,7 @@ void atecc_error_flash() {
 uint8_t message[16];
 
 void setup(void) {
-  gateway_sa = 37;
-
+  
 //  self_source_addr = 11+128; //Brake CAN Conditioner
 //  num_ecu_source_addresses = 1;
 //  ecu_source_addresses[0] = 11; //Brake Controller
@@ -103,14 +102,11 @@ void setup(void) {
   vehicle_can.begin();
   vehicle_can.setBaudRate(250000);
   vehicle_can.setMaxMB(NUM_TX_MAILBOXES + NUM_RX_MAILBOXES);
-  if (FIFO_ENABLED) vehicle_can.enableFIFO();
-  //vehicle_can.enableFIFOInterrupt();
-
+ 
   ecu_can.begin();
   ecu_can.setBaudRate(250000);
   ecu_can.setMaxMB(NUM_TX_MAILBOXES+NUM_RX_MAILBOXES);
-  if (FIFO_ENABLED) ecu_can.enableFIFO();
-
+  
   for (int i = 0; i<NUM_RX_MAILBOXES; i++){
     vehicle_can.setMB(i,RX,EXT);
     ecu_can.setMB(i,RX,EXT);
@@ -119,6 +115,10 @@ void setup(void) {
     vehicle_can.setMB(i,TX,EXT);
     ecu_can.setMB(i,TX,EXT);
   }
+
+   vehicle_can.enableFIFO();
+  //vehicle_can.enableFIFOInterrupt();
+  if (FIFO_ENABLED) ecu_can.enableFIFO();
 
   Serial5.begin(9600);
   pinMode(RED_LED, OUTPUT);
@@ -314,7 +314,7 @@ void setup(void) {
   digitalWrite(GREEN_LED, HIGH);
   digitalWrite(LED_BUILTIN, LOW);
   Serial.println("Starting Loop.");
-  //delay(10);
+  delay(10);
   
   
 }
