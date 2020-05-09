@@ -73,16 +73,16 @@ uint8_t message[16];
 
 void setup(void) {
   
-//  self_source_addr = 11+128; //Brake CAN Conditioner
-//  num_ecu_source_addresses = 1;
+//  self_source_addr = 0+128; //Brake CAN Conditioner
+//  num_ecu_source_addresses = 2;
 //  ecu_source_addresses[0] = 11; //Brake Controller
-//  //ecu_source_addresses[1] = 15; //Retarder
+//  ecu_source_addresses[1] = 15; //Retarder
 //  
 //  num_veh_source_addresses = 12;
 //  veh_source_addresses[0] = 249; // Diagnostic Tool
 //  veh_source_addresses[1] = 37; //Gateway
-//  veh_source_addresses[2] = 0; // Brake Controller
-//  veh_source_addresses[3] = 128+0; //Brake CAN Conditioner
+//  veh_source_addresses[2] = 11; // Brake Controller
+//  veh_source_addresses[3] = 128+11; //Brake CAN Conditioner
 //  veh_source_addresses[4] = 3; // Transmission
 //  veh_source_addresses[5] = 128+3; //Transmission CAN Conditioner
 //  veh_source_addresses[6] = 33; // Body Controller
@@ -91,12 +91,12 @@ void setup(void) {
 //  veh_source_addresses[9] = 128+49; // Body controller CAN Conditioner
 //  veh_source_addresses[10] = 15; // Retarder
 //  veh_source_addresses[11] = 128+15; // Retarder CAN Conditioner
-//  
-//  EEPROM.put(EEPROM_SELF_SOURCE_ADDR,self_source_addr);
-//  EEPROM.put(EEPROM_NUM_ECU_SA_ADDR,num_ecu_source_addresses);
-//  EEPROM.put(EEPROM_NUM_VEH_SA_ADDR,num_veh_source_addresses);
-//  EEPROM.put(EEPROM_ECU_ADDR,ecu_source_addresses);
-//  EEPROM.put(EEPROM_VEH_ADDR,veh_source_addresses);
+  
+  EEPROM.put(EEPROM_SELF_SOURCE_ADDR,self_source_addr);
+  EEPROM.put(EEPROM_NUM_ECU_SA_ADDR,num_ecu_source_addresses);
+  EEPROM.put(EEPROM_NUM_VEH_SA_ADDR,num_veh_source_addresses);
+  EEPROM.put(EEPROM_ECU_ADDR,ecu_source_addresses);
+  EEPROM.put(EEPROM_VEH_ADDR,veh_source_addresses);
 
   load_source_addresses();
   vehicle_can.begin();
