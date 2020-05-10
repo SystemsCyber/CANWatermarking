@@ -296,8 +296,12 @@ void setup(void) {
   GREEN_LED_state = HIGH;
   RED_LED_state = HIGH;
   Serial.println("Starting Loop.");
-  
-  
+
+  for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
+    cmac_receipt_timer[i] = 0;
+  }   
+  while ((vehicle_can.events() & 0xFFFFFF) > 0);
+  while ((ecu_can.events() & 0xFFFFFF) > 0);
 }
 
 void loop() {
@@ -320,8 +324,8 @@ void loop() {
         message_ok = false;
         //SPN 10841: Impostor PG Source Address
         //FMI 19: Received Network Data In Error
-        send_DM1_message(IMPOSTOR_PG_SOURCE_ADDRESS, RECEIVED_NETWORK_DATA_IN_ERROR);
-        send_PG_alert_msg(vehicle_msg);
+        update_DM1_message(IMPOSTOR_PG_SOURCE_ADDRESS, RECEIVED_NETWORK_DATA_IN_ERROR);
+        update_pg_alert_msg(vehicle_msg);
       }
     }
     if (j1939_pgn == DATA_SECURITY_PGN) {
@@ -360,6 +364,8 @@ void loop() {
     if (ecu_index < 0){
       // Send DM message for bad SA
       Serial.println("Found Bad Source Address.");
+      update_pg_alert_msg(ecu_msg);
+      update_DM1_message(IMPOSTOR_PG_SOURCE_ADDRESS, BAD_INTELLIGENT_DEVICE);      
     }
     else {
       // Make sure all messages are transmitted.
@@ -380,13 +386,13 @@ void loop() {
   
   if (cmac_tx_timer >= CMAC_SEND_TIME_MS) {
     cmac_tx_timer = 0;
-    for (uint8_t ecu_index = 0; ecu_index < num_ecu_source_addresses; ecu_index++){
-      self_source_addr = get_self_source_addr(ecu_index);
+    for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
+      self_source_addr = get_self_source_addr(i);
       
       // Make sure all messages are sent out before sending the CMAC
       while ((vehicle_can.events() & 0xFFFFFF) > 0);
       delayMicroseconds(CMAC_PAD_TIME_MICROS);
-      send_cmac(self_source_addr, GATEWAY_SOURCE_ADDR, ecu_index);
+      send_cmac(self_source_addr, GATEWAY_SOURCE_ADDR, i);
       
       // Make sure the CMAC is sent out before any other messages are sent to the queue
       while ((vehicle_can.events() & 0xFFFFFF) > 0);
@@ -396,11 +402,23 @@ void loop() {
   }   
 
   //check timeouts:
-  for (uint8_t ecu_index = 0; ecu_index < num_ecu_source_addresses; ecu_index++){
-    if (cmac_receipt_timer[ecu_index] > (3*CMAC_SEND_TIME_MS)){
-      cmac_receipt_timer[ecu_index] = 0;
-      self_source_addr = get_self_source_addr(ecu_index);
-      send_DM1_message(PASSWORD_VALID_INDICATOR, ABNORMAL_UPDATE_RATE);
+  if (dm1_message_timer >= DM1_MESSAGE_TIMEOUT){
+    dm1_message_timer = 0;
+    vehicle_can.write(dm1_msg);
+    // Not CMACing out of band comms yet. update_cmac(0,dm1_msg); // use the first index.
+  }
+  if (impostor_pg_message_timer >= IMPOSTOR_PG_MESSAGE_TIMEOUT){
+    impostor_pg_message_timer = 0;
+    impostor_found = false;
+    vehicle_can.write(impostor_msg);
+    update_cmac(0,impostor_msg); // use the first index
+  }
+  
+  for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
+    if (cmac_receipt_timer[i] > (3*CMAC_SEND_TIME_MS)){
+      cmac_receipt_timer[i] = 0;
+      self_source_addr = get_self_source_addr(i);
+      update_DM1_message(PASSWORD_VALID_INDICATOR, ABNORMAL_UPDATE_RATE);
     }
   }
   //reset the LEDs if there is no vehicle CAN traffic
