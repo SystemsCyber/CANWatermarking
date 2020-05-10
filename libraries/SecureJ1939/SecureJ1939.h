@@ -178,7 +178,8 @@ void setup_aes_key(uint8_t cmac_index, uint8_t *init_vector, uint8_t *aes_key){
 
   dm1_occurrance_count = 0;
   dm1_msg.id = 0x18FECA00; //Priority 6 DM1 Message
-  dm1_msg.id += get_self_source_addr(0);
+  if (ecu_source_addresses[0] == GATEWAY_SOURCE_ADDR) dm1_msg.id += GATEWAY_SOURCE_ADDR;
+  else  dm1_msg.id += get_self_source_addr(0);
   dm1_msg.len = 8;
   dm1_msg.flags.extended = 1;
   dm1_msg.buf[0] = 0; // LAMP
@@ -556,23 +557,6 @@ void send_cmac(uint8_t sa, uint8_t da, uint8_t cmac_index){
   //print_bytes(vehicle_msg.buf, 6);
 }
 
-void compare_cmacs(uint8_t cmac_index, uint8_t *cmac_value) {
-  send_cmac(self_source_addr, veh_source_addresses[cmac_index]+0x80, cmac_index);
-
-  if (!memcmp(omac_copy[cmac_index], cmac_value, 6)) {
-    cmac_success_counter[cmac_index]++;
-    Serial.printf("%8d CMACs for SA %02X Idx %d Matched.\n",cmac_success_counter[cmac_index],veh_source_addresses[cmac_index],cmac_index);
-  }
-  else {
-    cmac_error_counter[cmac_index]++;
-    Serial.printf("CMAC %d did not match: %d\n",cmac_index,cmac_error_counter[cmac_index]);
-    // Send DM1 Message
-    // Send Impostor PG Alert Message
-
-  }
-}
-
-
 void update_DM1_message(uint32_t spn, uint8_t fmi){
   // TODO: Convert this routine to handle long messages and multiple trouble codes.
   Serial.printf("DM1 Message (SPN %d, FMI %d, SA 0x%02X) ",spn,fmi,self_source_addr);
@@ -629,3 +613,16 @@ void update_pg_alert_msg(const CAN_message_t msg){
   impostor_msg.buf[6] = imposter_time; //10844: Time Since Last Imposter PG Detected in minutes
 }
  
+void compare_cmacs(uint8_t cmac_index, uint8_t *cmac_value) {
+  send_cmac(self_source_addr, veh_source_addresses[cmac_index]+0x80, cmac_index);
+
+  if (!memcmp(omac_copy[cmac_index], cmac_value, 6)) {
+    cmac_success_counter[cmac_index]++;
+    Serial.printf("%8d CMACs for SA %02X Idx %d Matched.\n",cmac_success_counter[cmac_index],veh_source_addresses[cmac_index],cmac_index);
+  }
+  else {
+    cmac_error_counter[cmac_index]++;
+    Serial.printf("CMAC %d did not match: %d\n",cmac_index,cmac_error_counter[cmac_index]);
+    update_DM1_message(IMPOSTOR_PGN, DATA_INCORRECT);
+  }
+}

@@ -78,6 +78,7 @@
 #define BAD_INTELLIGENT_DEVICE              12
 #define OUT_OF_CALIBRATION                  13
 #define SPECIAL_INSTRUCTIONS                14
+#define DATA_INCORRECT                      2
 
 #define DM1_MESSAGE_TIMEOUT         1000
 #define IMPOSTOR_PG_MESSAGE_TIMEOUT 1000
