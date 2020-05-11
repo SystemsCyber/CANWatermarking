@@ -65,6 +65,32 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: ApiGatewayAuthorizer
+  list_keys:
+    handler: key.list_keys  
+    events:
+      - http:
+          path: list_keys
+          method: get
+          private: false
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowed-headers}
+            allowCredentials: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+  shared_secret:
+    handler: key.shared_secret  
+    events:
+      - http:
+          path: shared_secret
+          method: post
+          private: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
 resources:
   Resources:
     CognitoUserPool:
@@ -126,6 +152,21 @@ custom:
   pythonRequirements:
     zip: false
     slim: false
+  allowed-headers:
+    - Content-Type
+    - X-Amz-Date
+    - Authorization
+    - X-Api-Key
+    - Vary
+    - X-Amz-Security-Token
+    - Origin
+    - x-requested-with
+    - Access-Control-Allow-Origin
+    - Access-Control-Allow-Headers
+    - Access-Control-Allow-Methods
+    - Access-Control-Request-Headers
+    - Access-Control-Request-Method
+    - Access-Control-Expose-Headers
 iamRoleStatements:
   - Effect: Allow
     Action:

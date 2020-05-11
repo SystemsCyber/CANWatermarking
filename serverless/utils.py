@@ -22,6 +22,7 @@ def lambdaResponse(statusCode,
     # Make sure the content type is json
     header = headers
     header["Content-Type"] = "application/json"  
+    header["Access-Control-Allow-Origin"]= "*"
     response = {
         "isBase64Encoded": isBase64Encoded,
         "statusCode": statusCode,
