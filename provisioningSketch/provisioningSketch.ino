@@ -49,7 +49,8 @@ ATECCX08A atecc;
 
 // A buffer to get data into the ATECC EEPROM
 uint8_t temp_buf[32];
-// A buffer for the X962 encoded UncompressedPoint formatted SECP256R1 ECC public key (less the leading byte of 0x04).
+// A buffer for the X962 encoded UncompressedPoint formatted SECP256R1 ECC public key 
+// (less the leading byte of 0x04).
 uint8_t server_public_key[64];
 // A buffer for an AES encrypted password
 uint8_t padded_device_code[16];
