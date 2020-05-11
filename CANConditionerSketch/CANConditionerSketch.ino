@@ -116,6 +116,8 @@ void setup(void) {
     memcpy(&serial_string[2 * i], &hex_char, 2);
   }
   sprintf(model_string, "CANConditioner");
+  memset(comp_id,0xFF,sizeof(comp_id));
+  sprintf(comp_id,"CSU*CANConditioner*%s*",serial_string);
 
   Serial.print("Config Zone: \t");
   if (atecc.configLockStatus) Serial.println("Locked");
@@ -196,10 +198,11 @@ void setup(void) {
         Serial.printf("PGN: %04X, SA: %02X, DA: %02X, DLC: %d, Data: ", j1939_pgn, j1939_sa, j1939_da, num_bytes);
         print_bytes(j1939_data, num_bytes);
         if (j1939_pgn == DM18_PGN) {
-          Serial.println("Data Security Message Found.");
+          //Serial.println("Data Security Message Found.");
           uint8_t msg_len = j1939_data[0];
           uint8_t msg_type = j1939_data[1];
           if (msg_type == DM18_RESET_TYPE && j1939_sa == gateway_sa) {
+              // TODO: Add some cryptographic primitives to reboot the system.
               setup();
           }
           else if (msg_type == DM18_PUBLIC_KEY_TYPE && msg_len == 64 && j1939_da == self_source_addr) {
@@ -342,6 +345,15 @@ void loop() {
             cmac_receipt_timer[i] = 0;
           }
         }
+      }
+    }
+    else if (j1939_pgn == REQUEST_PGN && 
+             j1939_sa == DIAGNOSTICS_TOOL_1_SA && 
+             j1939_da == get_self_source_addr(0)
+             )
+    {
+      if (j1939_data[0] == 0xEB && j1939_data[1] == 0xFE){ //Component ID Request
+        send_component_id(j1939_sa);  
       }
     }
     else if (message_ok){

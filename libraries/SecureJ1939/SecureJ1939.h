@@ -6,8 +6,12 @@
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_1024> vehicle_can;
 FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_1024> ecu_can;
 
-char serial_string[19];
+char make_string[6];
 char model_string[14];
+char serial_string[19];
+//char comp_id[sizeof((make_string)+sizeof(model_string)+2+sizeof(serial_string) + 4)];
+//char comp_id[sizeof(make_string) + sizeof(model_string) + sizeof(serial_string) + 4];
+char comp_id[42];
 uint32_t intrusion_count;
 uint32_t success_count;
 
@@ -111,6 +115,7 @@ int get_sa_index(uint8_t sa){
     if (next_source_address_index >= NUM_SOURCE_ADDRESSES) {
       Serial.println("Source Address Space Exceeded");
       next_source_address_index = 0;
+      sa_index = -1;
     }
   }
   //Serial.printf("Index for %02X is %d\n",sa,sa_index);
@@ -341,16 +346,8 @@ void send_end_of_msg_ack(uint32_t j1939_pgn, uint8_t packets, uint16_t num_bytes
 }
 
 void send_component_id(uint8_t dest){
-  char comp_id[4+sizeof(model_string)+1+sizeof(serial_string)];
-  memset(comp_id,0xFF,sizeof(comp_id));
-  strncpy(&comp_id[0],'CSU*',4);
-  strncpy(&comp_id[4],model_string,sizeof(model_string));
-  comp_id[4+sizeof(model_string)] = '*';
-  strncpy(&comp_id[4+sizeof(model_string)+1],serial_string,sizeof(serial_string));
-  comp_id[sizeof(comp_id) - 1] = '*';
+  Serial.println("Sending Component ID.");
   Serial.println(comp_id);
-  int sa_index = get_sa_index(dest);
-  uint8_t da_index;
   uint8_t packets_to_send = sizeof(comp_id)/7 + bool(sizeof(comp_id)%7);;
   uint8_t data_to_send[8];
   data_to_send[0] = CM_BAM;
@@ -364,8 +361,6 @@ void send_component_id(uint8_t dest){
   //BAM
   send_frame(TP_CM_PGN, dest, self_source_addr, data_to_send, sizeof(data_to_send), NORMAL_PRIORITY);
   uint8_t start_packet = 0;
-  uint8_t temp_buffer[sizeof(comp_id)];
-  memcpy(&temp_buffer[0],comp_id,sizeof(comp_id));
   send_multi_frame(dest, self_source_addr, comp_id, start_packet, packets_to_send);
 }
 
@@ -416,13 +411,13 @@ int parseJ1939(CAN_message_t msg){
   if (da_index == 254) return -1;
  
   if (pgn == REQUEST_PGN){
-    //Serial.print("Found Request PGN: ");
-    //print_bytes(msg.buf,msg.len);
-    j1939_pgn = (msg.buf[2] << 16) + (msg.buf[1] << 8) + msg.buf[0];
+    Serial.print("Found Request PGN: ");
+    print_bytes(msg.buf,msg.len);
+    uint32_t request_pgn = (msg.buf[2] << 16) + (msg.buf[1] << 8) + msg.buf[0];
     // Send a response if the PGN is supported
-    //Serial.printf("%X == %X\n",j1939_pgn,COMPONENT_ID_PGN);
-    if (j1939_pgn == COMPONENT_ID_PGN){
-      send_component_id(GLOBAL_ADDR);
+    Serial.printf("%X == %X, DA: %02X\n",request_pgn,COMPONENT_ID_PGN,da);
+    if (request_pgn == COMPONENT_ID_PGN && da == 254){
+       send_component_id(da);
     }
   }
   else if (pgn == TP_DT_PGN){
