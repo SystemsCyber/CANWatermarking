@@ -19,7 +19,6 @@ var CANConditioner = window.CANConditioner || {};
         return;
     }
 
-
     userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
     if (typeof AWSCognito !== 'undefined') {
@@ -30,23 +29,37 @@ var CANConditioner = window.CANConditioner || {};
         userPool.getCurrentUser().signOut();
     };
 
-    CANConditioner.authToken = new Promise(function fetchCurrentAuthToken(resolve, reject) {
-        var cognitoUser = userPool.getCurrentUser();
-
-        if (cognitoUser) {
+	var cognitoUser = userPool.getCurrentUser();
+	
+	if (cognitoUser) {
             cognitoUser.getSession(function sessionCallback(err, session) {
                 if (err) {
-                    reject(err);
+                    console.log(err);
                 } else if (!session.isValid()) {
-                    resolve(null);
+                    console.log(null);
                 } else {
-                    resolve(session.getIdToken().getJwtToken());
+                    console.log(session.getIdToken().getJwtToken());
                 }
             });
-        } else {
-            resolve(null);
-        }
-    });
+	}
+	
+    //~ CANConditioner.authToken = new Promise(function fetchCurrentAuthToken(resolve, reject) {
+        //~ var cognitoUser = userPool.getCurrentUser();
+
+        //~ if (cognitoUser) {
+            //~ cognitoUser.getSession(function sessionCallback(err, session) {
+                //~ if (err) {
+                    //~ reject(err);
+                //~ } else if (!session.isValid()) {
+                    //~ resolve(null);
+                //~ } else {
+                    //~ resolve(session.getIdToken().getJwtToken());
+                //~ }
+            //~ });
+        //~ } else {
+            //~ resolve(null);
+        //~ }
+    //~ });
 
 
     /*
@@ -109,7 +122,8 @@ var CANConditioner = window.CANConditioner || {};
         $('#signinForm').submit(handleSignin);
         $('#registrationForm').submit(handleRegister);
         $('#verifyForm').submit(handleVerify);
-        $('#recoverForm').submit(handleRecover);  
+        $('#recoverForm').submit(handleRecover);
+        
     });
 
     function handleRecover(event) {
