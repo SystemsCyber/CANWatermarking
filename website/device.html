@@ -30,12 +30,27 @@
     <script src="js/cognito-auth.js"></script>
     <script>
         $(document).ready( function(){
+            const urlParams = new URLSearchParams(window.location.hash);
+            authable = urlParams.get('#id_token');
             console.log("authToken: ");
-            console.log(CANConditioner.authToken);
-            CANConditioner.authToken.resolve('fulfilled').then(function(value){console.log("Fina val: ", value);});
+            console.log(authable);
+            $("#authToken").val(authable);
+            $.ajax({
+                url: "https://jeg5qkwei4.execute-api.us-east-1.amazonaws.com/dev/list_keys",
+                method: "GET",
+                crossDomain: true,
+                dataType: 'json',
+                headers: {
+                    'Authorization': "Bearer " + authable,
+                    
+                }
+            })
+            .done( function(data){
+                console.log(data);
+            })
 
         });
-        
+            
     </script>
 </body>
 
