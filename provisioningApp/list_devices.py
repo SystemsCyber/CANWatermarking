@@ -1,0 +1,17 @@
+import requests
+import os
+
+token = "eyJraWQiOiJKN0lcL0NmR2lEcHZETVk1b3ZYREVXajNPUlwvaEUwaTR2b0JBTnR6WFRrejA9IiwiYWxnIjoiUlMyNTYifQ.eyJhdF9oYXNoIjoiTEktdllPNl9ZSHQ2Z0JwaF93dm1WdyIsInN1YiI6IjFmOGNiODI3LWI3MDktNDJhZC05MWRkLTQ0YzhlYzkzMDQ4MiIsImF1ZCI6IjIxM2lmbjBtamhiNjRtc2pmcDFiZWdlMWViIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImV2ZW50X2lkIjoiMTM0ZGI0NGQtNGFiNy00ZWNmLTkzNGQtZjQwNDdkYWYwMzllIiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE1ODkyMzYzNDAsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xX2h3akxFM2tKWSIsImNvZ25pdG86dXNlcm5hbWUiOiIxZjhjYjgyNy1iNzA5LTQyYWQtOTFkZC00NGM4ZWM5MzA0ODIiLCJleHAiOjE1ODkyMzk5NDAsImlhdCI6MTU4OTIzNjM0MSwiZW1haWwiOiJqZXJlbXkuZGFpbHlAY29sb3N0YXRlLmVkdSJ9.edbvBZvCy8BNldOFbwhtE5BdwGD-rKbxczJ75PGJgATaaDuG303Kqjzt-5OAv4Svc94n5M8h_LOECpbrP8swanZhg7wC0ho01dOyV93ALhO5S845TtYQhgP2ABdMArny-AkLkcEirU2k1CLEP6tmSH6xk8HGI9wuG9Id88w6-x_9_-7zceUWCUEVFan9EEDxiuzoFFxuHQBIxYd57rLdU9WvcLGCfX8TL7pBZzGJEUnv2G826ROJAKoJjROA6Icfmqt1JccVjiVt_YO-k4UCdCSu1hMzXhX_kL1U3fZImNawG6cJ_xwXlTxD00bHjcsCtQJgyQ6E2gUAoeFRtJQL6w"
+
+##API_KEY = os.environ["CANWatermarking_API_KEY"]
+
+url = "https://jeg5qkwei4.execute-api.us-east-1.amazonaws.com/dev/list_keys"
+   
+header = {}
+#header["x-api-key"] = API_KEY #without this header, the API Gateway will return a 403: header["Authorization"] = token #without this header, the API Gateway will return a 401: 
+header["Authorization"] = token
+
+r = requests.get(url, headers=header)
+print(r.status_code)
+print(r.json())
+        
