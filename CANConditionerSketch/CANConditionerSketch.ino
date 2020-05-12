@@ -4,6 +4,7 @@
 #include <SparkFun_ATECCX08a_Arduino_Library.h>
 
 #define CMAC_SEND_TIME_MS  1000
+#define CMAC_TIMEOUT 5*CMAC_SEND_TIME_MS
 #define CMAC_PAD_TIME_MICROS 500 //Micros
 #define MIN_CAN_TIME_SPACING 400 //Micros
 #define FIFO_ENABLED true  
@@ -340,9 +341,9 @@ void loop() {
       }
       else if (msg_type == DM18_CMAC_TYPE){
         for (int i = 0; i < num_ecu_source_addresses; i++){
+          cmac_receipt_timer[i] = 0;
           if (j1939_da == (ecu_source_addresses[i] + 0x80) || j1939_da == ecu_source_addresses[i]){
             Serial.printf("Found CMAC Receipt for %02X %d\n",j1939_da, cmac_counter[i]);
-            cmac_receipt_timer[i] = 0;
           }
         }
       }
@@ -427,10 +428,13 @@ void loop() {
   }
   
   for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
-    if (cmac_receipt_timer[i] > (3*CMAC_SEND_TIME_MS)){
+    if (cmac_receipt_timer[i] > (CMAC_TIMEOUT)){
       cmac_receipt_timer[i] = 0;
       self_source_addr = get_self_source_addr(i);
       update_DM1_message(PASSWORD_VALID_INDICATOR, ABNORMAL_UPDATE_RATE);
+      dm1_msg.id = (dm1_msg.id & 0x3FFFF00) + self_source_addr;
+      vehicle_can.write(dm1_msg);
+      dm1_message_timer = 0;
     }
   }
   //reset the LEDs if there is no vehicle CAN traffic
