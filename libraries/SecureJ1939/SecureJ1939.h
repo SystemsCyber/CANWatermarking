@@ -566,8 +566,8 @@ void update_DM1_message(uint32_t spn, uint8_t fmi){
   dm1_msg.buf[2] = spn & 0xFF; // SPN
   dm1_msg.buf[3] = (spn & 0xFF00) >> 8; // SPN
   dm1_msg.buf[4] = ((spn & 0x70000) >> 11 ) + (fmi & 0b11111); // SPN and FMI (See version 4 in SAE J1939-73)
-  dm1_msg.buf[5] = dm1_occurrance_count; // Conversion method and Occurrance Count
-  dm1_msg.buf[6] = 255; //10844: Time Since Last Imposter PG Detected
+  dm1_msg.buf[5] = dm1_occurrance_count; // Conversion method and Occurrence Count
+  dm1_msg.buf[6] = 255; //Not used
   dm1_msg.buf[7] = 255; //Not used
 }
  
