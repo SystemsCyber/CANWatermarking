@@ -7,29 +7,49 @@
     <title>SystemsAccess</title>
     <link rel="stylesheet" href="../assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Aclonica">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Annie+Use+Your+Telescope">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Architects+Daughter">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Atma">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Audiowide">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Beth+Ellen">
     <link rel="stylesheet" href="../assets/css/Contact-Form-Clean.css">
+    <link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css">
     <link rel="stylesheet" href="../assets/css/Projects-Clean.css">
     <link rel="stylesheet" href="../assets/css/styles.css">
 </head>
 
 <body>
     <div class="container">
-        <div style="padding-top: 0px;padding-bottom: 40;">
-            <nav class="navbar navbar-light navbar-expand-md text-center border rounded-0" style="font-size: 40;line-height: 3;">
-                <div class="container-fluid"><a class="navbar-brand text-uppercase" href="#" style="font-size: 31px;font-family: Audiowide, cursive;">CANConditioner</a><button data-toggle="collapse" class="navbar-toggler" data-target="#navcol-1"><span class="sr-only">Toggle navigation</span><span class="navbar-toggler-icon"></span></button>
-                    <div
-                        class="collapse navbar-collapse text-uppercase" id="navcol-1" style="font-family: Aclonica, sans-serif;font-size: 22px;">
-                        <ul class="nav navbar-nav">
-                            <li class="nav-item" role="presentation"><a class="nav-link" href="add.html">Add</a></li>
-                            <li class="nav-item" role="presentation"><a class="nav-link" href="view.html">View</a></li>
-                            <li class="nav-item" role="presentation"><a class="nav-link active" href="#">Utilize</a></li>
-                        </ul>
-                </div>
-        </div>
-        </nav>
+        <header>
+            <div style="padding-top: 0px;padding-bottom: 40;">
+                <nav class="navbar navbar-light navbar-expand-md text-center border rounded-0" style="font-size: 40;line-height: 3;">
+                    <div class="container-fluid"><a class="navbar-brand text-uppercase" id="nvbrand" href="#" style="font-size: 31px;font-family: Audiowide, cursive;"><strong>CANConditioner</strong></a><button data-toggle="collapse" class="navbar-toggler" data-target="#navcol-1"><span class="sr-only">Toggle navigation</span><span class="navbar-toggler-icon"></span></button>
+                        <div
+                            class="collapse navbar-collapse text-uppercase" id="navcol-1" style="font-family: Aclonica, sans-serif;font-size: 22px;">
+                            <ul class="nav navbar-nav">
+                                <li class="nav-item" role="presentation"><a class="nav-link" href="add.html">Add</a></li>
+                                <li class="nav-item" role="presentation"><a class="nav-link" href="view.html">View</a></li>
+                                <li class="nav-item" role="presentation"><a class="nav-link active" href="utilize.html">Utilize</a></li>
+                            </ul>
+                    </div>
+            </div>
+            </nav>
     </div>
+    <div>
+        <div class="modal fade" role="dialog" tabindex="-1" id="notify">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title" id="notify-header"></h4><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button></div>
+                    <div class="modal-body">
+                        <p id="notify-content" style="color: rgb(231,19,45);font-family: Audiowide, cursive;font-size: 18px;"></p>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-light" type="button" data-dismiss="modal">Close</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </header>
     <div style="padding-top: 50;margin-top: 12px;">
         <div class="row" style="margin-right: 0;margin-left: 0;">
             <div class="col">
@@ -59,6 +79,7 @@
     <script src="../assets/js/bs-init.js"></script>
     <script src="../assets/js/amazon-cognito-identity.min.js"></script>
     <script src="../assets/js/aws-cognito-sdk.min.js"></script>
+    <script src="https://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
     <script src="../assets/js/process.js"></script>
 </body>
 

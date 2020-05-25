@@ -53,11 +53,12 @@ def auth(event, context):
    
     # Lookup the data needed from the unique CAN Logger by its serial number
     dbClient = boto3.resource('dynamodb', region_name=region)
-    table = dbClient.Table("CANConditioners")
+    table = dbClient.Table("CANConditionersSubhojeetDev")
     try:
         item = table.get_item( 
             Key = {'id': body['serial_number'],} 
         ).get('Item')
+        print (item)
     except:
         return response(400, "Unable to retrieve table item.")
     
