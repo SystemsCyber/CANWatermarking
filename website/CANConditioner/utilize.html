@@ -13,9 +13,17 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Audiowide">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Beth+Ellen">
     <link rel="stylesheet" href="../assets/css/Contact-Form-Clean.css">
-    <link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css">
     <link rel="stylesheet" href="../assets/css/Projects-Clean.css">
     <link rel="stylesheet" href="../assets/css/styles.css">
+<script src="https://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
+    <style>
+      html, body {
+        height: 100%;
+        padding: 0;
+        margin: 0;
+      }
+    </style>
 </head>
 
 <body>
@@ -50,36 +58,12 @@
         </div>
     </div>
     </header>
-    <div style="padding-top: 50;margin-top: 12px;">
-        <div class="row" style="margin-right: 0;margin-left: 0;">
-            <div class="col">
-                <form method="post">
-                    <h2 class="text-center">Add a System</h2>
-                    <div class="form-group"><input class="form-control" type="text" name="name" placeholder="A (possibly) unique name"></div>
-                    <div class="form-group"><input class="form-control" type="text" data-toggle="tooltip" data-bs-tooltip="" name="subnet" placeholder="Subnet in CIDR" title="All traffic from the system must originate from within this subnet"></div>
-                    <div class="form-group"><input class="form-control" type="text" name="vin" placeholder="VIN [Only for a truck]"></div>
-                    <div class="form-group"><textarea class="form-control" name="desc" placeholder="Describe your system if you may.." rows="10"></textarea></div>
-                    <div class="form-group"><button class="btn btn-primary" type="submit">Add</button></div>
-                </form>
-            </div>
-            <div class="col">
-                <form method="post">
-                    <h2 class="text-center">Add a Device</h2>
-                    <div class="form-group"><input class="form-control" type="text" name="name" placeholder="A (possibly) unique name"></div>
-                    <div class="form-group"><input class="form-control is-invalid" type="email" name="sysid" placeholder="Containing system's ID"></div>
-                    <div class="form-group"><textarea class="form-control" name="message" placeholder="Describe your device if you may.." rows="10"></textarea></div>
-                    <div class="form-group"><button class="btn btn-primary" type="submit">Add</button></div>
-                </form>
-            </div>
-        </div>
-    </div>
     </div>
     <script src="../assets/js/jquery.min.js"></script>
     <script src="../assets/bootstrap/js/bootstrap.min.js"></script>
     <script src="../assets/js/bs-init.js"></script>
     <script src="../assets/js/amazon-cognito-identity.min.js"></script>
     <script src="../assets/js/aws-cognito-sdk.min.js"></script>
-    <script src="https://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
     <script src="../assets/js/process.js"></script>
 </body>
 

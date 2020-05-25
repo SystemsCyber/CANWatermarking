@@ -13,9 +13,17 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Audiowide">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Beth+Ellen">
     <link rel="stylesheet" href="../assets/css/Contact-Form-Clean.css">
-    <link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css">
     <link rel="stylesheet" href="../assets/css/Projects-Clean.css">
     <link rel="stylesheet" href="../assets/css/styles.css">
+<script src="https://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
+    <style>
+      html, body {
+        height: 100%;
+        padding: 0;
+        margin: 0;
+      }
+    </style>
 </head>
 
 <body>
@@ -50,8 +58,9 @@
         </div>
     </div>
     </header>
+    <div id="map" style="width: 100%; height: 300px;"></div>
     <div style="padding-top: 50;margin-top: 12px;">
-        <div class="modal fade" role="dialog" tabindex="-1">
+        <div class="modal fade" role="dialog" tabindex="-1" id="devmod">
             <div class="modal-dialog" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -60,39 +69,40 @@
                         <form>
                             <div class="form-group">
                                 <div class="input-group">
-                                    <div class="input-group-prepend"><span class="input-group-text">SystemID</span></div><input class="form-control" type="text" data-toggle="tooltip" data-bs-tooltip="" data-placement="bottom" placeholder="The testbed or truck containg this device" title="The sytem must be registered"></div>
+                                    <div class="input-group-prepend"><span class="input-group-text">SystemID</span></div><input class="form-control" type="text" data-toggle="tooltip" data-bs-tooltip="" data-placement="bottom" placeholder="The testbed or truck containg this device" title="The sytem must be registered"
+                                        name="sysid"></div>
                             </div>
                             <div class="form-group">
                                 <div class="input-group">
-                                    <div class="input-group-prepend"><span class="input-group-text">Provisioner email</span></div><input class="form-control" type="text" readonly=""></div>
+                                    <div class="input-group-prepend"><span class="input-group-text">Provisioner email</span></div><input class="form-control" type="text" id="email" name="email" readonly=""></div>
                             </div>
                             <div class="form-group">
                                 <div class="input-group">
-                                    <div class="input-group-prepend"><span class="input-group-text">Encrypted data key<br></span></div><input class="form-control" type="text" readonly=""></div>
+                                    <div class="input-group-prepend"><span class="input-group-text">Encrypted data key<br></span></div><input class="form-control" type="text" id="encrypted_data_key" readonly="" name="encrypted_data_key"></div>
                             </div>
                             <div class="form-group">
                                 <div class="input-group">
-                                    <div class="input-group-prepend"><span class="input-group-text">Encrypted device code<br></span></div><input class="form-control" type="text" readonly=""></div>
+                                    <div class="input-group-prepend"><span class="input-group-text">Encrypted device code<br></span></div><input class="form-control" type="text" id="encrypted_device_code" readonly="" name="encrypted_device_code"></div>
                             </div>
                             <div class="form-group">
                                 <div class="input-group">
-                                    <div class="input-group-prepend"><span class="input-group-text">Encrypted device password<br></span></div><input class="form-control" type="text" readonly=""></div>
+                                    <div class="input-group-prepend"><span class="input-group-text">Encrypted device password<br></span></div><input class="form-control" type="text" id="encrypted_device_password" readonly="" name="encrypted_device_password"></div>
                             </div>
                             <div class="form-group">
                                 <div class="input-group">
-                                    <div class="input-group-prepend"><span class="input-group-text">Encrypted device public key<br></span></div><input class="form-control" type="text" readonly=""></div>
+                                    <div class="input-group-prepend"><span class="input-group-text">Encrypted device public key<br></span></div><input class="form-control" type="text" id="encrypted_device_public_key" readonly="" name="encrypted_device_public_key"></div>
                             </div>
                             <div class="form-group">
                                 <div class="input-group">
-                                    <div class="input-group-prepend"><span class="input-group-text">Encrypted key code<br></span></div><input class="form-control" type="text" readonly=""></div>
+                                    <div class="input-group-prepend"><span class="input-group-text">Encrypted key code<br></span></div><input class="form-control" type="text" id="encrypted_key_code" readonly="" name="encrypted_key_code"></div>
                             </div>
                             <div class="form-group">
                                 <div class="input-group">
-                                    <div class="input-group-prepend"><span class="input-group-text">Encrypted server pem key<br></span></div><input class="form-control" type="text" readonly=""></div>
+                                    <div class="input-group-prepend"><span class="input-group-text">Encrypted server pem key<br></span></div><input class="form-control" type="text" id="encrypted_server_pem_key" readonly="" name="encrypted_server_pem_key"></div>
                             </div>
                             <div class="form-group">
                                 <div class="input-group">
-                                    <div class="input-group-prepend"><span class="input-group-text">SourceIp</span></div><input class="form-control" type="text" readonly=""></div>
+                                    <div class="input-group-prepend"><span class="input-group-text">SourceIp</span></div><input class="form-control" type="text" id="sourceIp" readonly="" name="sourceIp"></div>
                             </div>
                         </form>
                     </div>
@@ -100,15 +110,16 @@
                 </div>
             </div>
         </div>
-        <div class="table-responsive">
-            <table class="table">
+        <div class="table-responsive" data-toggle="tooltip" data-bs-tooltip="" data-placement="left" title="Click on a device ID to edit its data">
+            <table class="table table-hover">
                 <thead>
                     <tr>
                         <th>Device ID</th>
-                        <th>Location</th>
+                        <th>Show on map</th>
+                        <th>Show provisioner on map</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody id="devtab"></tbody>
             </table>
         </div>
     </div>
@@ -118,7 +129,6 @@
     <script src="../assets/js/bs-init.js"></script>
     <script src="../assets/js/amazon-cognito-identity.min.js"></script>
     <script src="../assets/js/aws-cognito-sdk.min.js"></script>
-    <script src="https://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
     <script src="../assets/js/process.js"></script>
 </body>
 
