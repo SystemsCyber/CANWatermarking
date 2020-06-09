@@ -1,3 +1,27 @@
+# Overview Document
+
+# Extending the SDT Framework
+
+## Extending the Comm layer
+
+## Extending the System Designer
+
+There are two ways to extend the system designer: extends the code-base itself from GIT or extend the model.
+
+### Extending the model
+
+1. Alter the model diagram at 
+
+   <div style="width: 640px; height: 480px; margin: 10px; position: relative;"><iframe allowfullscreen frameborder="0" style="width:640px; height:480px" src="https://app.lucidchart.com/documents/embeddedchart/e9643a24-b68c-40b1-949b-e5aa0007305e" id="vrg54.km5QB2"></iframe></div>
+
+2. Make the corresponding changes in the modelAndForms.js file
+
+3. [If adding new drawable classes (like Field, Connection, System etc..)] add the corresponding buttons and change the 'onclick' property on the button. Follow previous buttons if stuck. 
+
+## Extending the Device Clients
+
+
+
 # Switching between Subhojeet's (CS) and Dr. Daily's (ENGR) domains
 
 1. On the COGNITO console
