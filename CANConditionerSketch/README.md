@@ -1,4 +1,4 @@
-## Example Serial Consol Output
+## Example Serial Console Output
 ```
 Successful wakeUp(). I2C connections are good.
 Serial Number: 	012362826474A4F4EE

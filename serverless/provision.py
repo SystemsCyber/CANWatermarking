@@ -77,11 +77,8 @@ def provision(event,context):
 
     #Create random 16 bytes for the PEM key
     choices = string.ascii_letters + string.digits
-    device_password = b''
-    device_code = b'\x00'*8
-    for i in range(8):
-        device_password += bytes(random.choice(choices),'utf-8')
-        device_code += bytes(random.choice(choices),'utf-8')
+    device_password = ''.join(random.choices(choices,k=8)).encode('ascii')
+    device_code = b'\x00'*8 + ''.join(random.choices(choices,k=8)).encode('ascii')
     
     #Load Device Public Key and derive shared secret
     device_bytes = b'\x04' + device_pub_key_bytes
@@ -144,6 +141,8 @@ def provision(event,context):
         'encrypted_device_password': str(base64.b64encode(encrypted_device_password),'ascii'),
         'encrypted_device_code': str(base64.b64encode(encrypted_device_code),'ascii'),
         'encrypted_key_code': str(base64.b64encode(encrypted_key_code),'ascii'),
+        'controller_applications': [],
+        'chassis_number': 'Not Assigned'
 
     }
 

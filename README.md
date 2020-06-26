@@ -64,8 +64,7 @@ Cognito -> App Integration -> Domain Name enter canconditioner
 
 
 ### Provisioning Sketch
-The Teensy 4.0 needs to use the Wire library to communicate with the ATECC608.
+The Teensy 4.0 needs to use the Wire library to communicate with the ATECC608A.
 
 #include <Arduino.h>
 #include <i2c_driver_wire.h>
-jeremy.daily@colostate.edu
