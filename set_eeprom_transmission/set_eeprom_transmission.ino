@@ -17,13 +17,13 @@ void setup() {
    self_source_addr = 11 + 0x80; //Brake Controller CAN Conditioner
   
   num_ecu_source_addresses = 1;
-  ecu_source_addresses[0] = 11; //Brake Controller
+  ecu_source_addresses[0] = 3; //Transmission Controller
 
   num_veh_source_addresses = 15;
   veh_source_addresses[0] = 0; // Engine
   veh_source_addresses[1] = 128+0; //Engine CAN Conditioner
-  veh_source_addresses[2] = 3; // Transmission
-  veh_source_addresses[3] = 128+3; //Transmission CAN Conditioner
+  veh_source_addresses[2] = 11; // Brake
+  veh_source_addresses[3] = 128+11; //Brake CAN Conditioner
   veh_source_addresses[4] = 15; //retarder
   veh_source_addresses[5] = 128+15; //Retarder CAN Conditioner
   veh_source_addresses[6] = 33; // Body controller
