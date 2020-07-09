@@ -121,12 +121,20 @@ def list_keys(event, context):
     dbClient = boto3.resource('dynamodb', region_name='us-east-1')
     table = dbClient.Table("CANConditioners")
 
-    db_response = table.scan()
-    data = db_response['Items']
-    while 'LastEvaluatedKey' in db_response:
-        db_response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
-        data.extend(db_response['Items'])
-    print(data)
+    attribs = ['id','email', 'provision_time', 'sourceIp',
+                'chassis_number', 'gateway', 'nickname','protected_ecu']
+    records = table.scan(
+        AttributesToGet = attribs, 
+    )
+    data = records['Items']
+
+    while records.get('LastEvaluatedKey') is not None:
+        records = table.scan(
+            ExclusiveStartKey=records['LastEvaluatedKey'],
+            AttributesToGet = attribs, 
+            #FilterExpression = Attr('uploader').eq(email) | Attr('access_list').contains(email)
+        )
+        data.extend(records['Items'])
 
     return response(200, data)
 

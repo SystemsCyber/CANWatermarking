@@ -65,6 +65,21 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: ApiGatewayAuthorizer
+  list_keys:
+    handler: key.list_keys   
+    events:
+      - http:
+          path: list_keys
+          method: get
+          private: false
+          cors:
+            origin: 'https://www.engr.colostate.edu'
+            headers: ${self:custom.allowed-headers}
+            allowCredentials: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
 resources:
   Resources:
     CognitoUserPool:
@@ -122,10 +137,38 @@ resources:
         Name: CognitoUserPoolArn
 plugins:
   - serverless-python-requirements
+  #- serverless-localstack
 custom:
   pythonRequirements:
     zip: false
     slim: false
+  localstack:
+    debug: true
+    stages: [local]
+    host: http://localhost
+    endpointFile: localstack_endpoints.json
+    lambda:
+      # Enable this flag to improve performance
+      mountCode: False
+    docker:
+      # Enable this flag to run "docker ..." commands as sudo
+      sudo: False
+  allowed-headers:
+    - Content-Type
+    - X-Amz-Date
+    - Authorization
+    - X-Api-Key
+    - Vary
+    - X-Amz-Security-Token
+    - Origin
+    - x-requested-with
+    - Access-Control-Allow-Origin
+    - Access-Control-Allow-Headers
+    - Access-Control-Allow-Methods
+    - Access-Control-Request-Headers
+    - Access-Control-Request-Method
+    - Access-Control-Expose-Headers
+
 iamRoleStatements:
   - Effect: Allow
     Action:

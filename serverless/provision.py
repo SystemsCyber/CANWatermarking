@@ -3,6 +3,7 @@ import base64
 import hashlib
 import random
 import string
+import time
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
@@ -14,6 +15,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import boto3
 from botocore.exceptions import ClientError
 
+import utils
 from utils import lambdaResponse as response
 
 
@@ -38,6 +40,22 @@ def provision(event,context):
         assert 'device_public_key' in body
     except AssertionError:
         return response(400, "Missing required parameters.")
+    try:
+        chassis_number = event['body']['chassis_number']
+    except TypeError:
+        chassis_number = 'Not Provided'
+    try:
+        is_gateway = bool(event['body']['is_gateway'])
+    except TypeError:
+        is_gateway = False
+    try:
+        nickname = event['body']['nickname']
+    except TypeError:
+        nickname = "device nickname"
+    try:
+        protected_ecu = event['body']['protected_ecu']
+    except TypeError:
+        protected_ecu = "Not Provided"
     try:
         pub_key = base64.b64decode(body['device_public_key'])
         assert len(pub_key) == 128
@@ -144,6 +162,11 @@ def provision(event,context):
         'encrypted_device_password': str(base64.b64encode(encrypted_device_password),'ascii'),
         'encrypted_device_code': str(base64.b64encode(encrypted_device_code),'ascii'),
         'encrypted_key_code': str(base64.b64encode(encrypted_key_code),'ascii'),
+        'chassis_number': chassis_number,
+        'gateway': is_gateway,
+        'nickname': nickname,
+        'protected_ecu': protected_ecu,
+        'provision_time': utils.get_timestamp(time.time())
 
     }
 
