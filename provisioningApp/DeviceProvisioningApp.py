@@ -339,20 +339,20 @@ class ProvisioningApp(QMainWindow):
                 self.ser.write(b'LOCK\n')
                 ret_val = self.get_serial_response()
                 logger.debug("Returned Server Public Key:")
-                logger.debug(ret_val.hex().upper())
+                logger.debug(ret_val.decode('ascii'))
                 logger.debug(server_public_key.hex().upper())
                 logger.debug("The above two lines should match.\nGREEN LED should be lit.") 
-                assert ret_val == server_public_key
+                assert ret_val.decode('ascii') == server_public_key.hex().upper()
 
                 logger.debug("Requesting Stored RSA Key.")
                 time.sleep(0.1)
                 self.ser.write(b'GETRSA\n')
                 ret_val = self.get_serial_response()
                 logger.debug("Returned RSA Key:")
-                logger.debug(ret_val.hex().upper())
+                logger.debug(ret_val.decode('ascii'))
                 logger.debug(rsa_public_key.hex().upper())
                 logger.debug("The above two lines should match.") 
-                # assert ret_val == rsa_public_key
+                assert ret_val.decode('ascii') == rsa_public_key
 
                 QMessageBox.information(self,"Provisioning Process",
                         "Server Public Key has been stored and locked in device {}".format(self.serial_id))
