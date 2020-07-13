@@ -33,7 +33,7 @@ void setup() {
   pinMode(LED_BUILTIN,OUTPUT);
   RED_LED_state = true;
   GREEN_LED_state = true;
-  YELLOW_LED_state = true;
+  YELLOW_LED_state = false;
   AMBER_LED_state = true;
 
   vehicle_can.begin();
@@ -52,6 +52,11 @@ void setup() {
   ecu_can.enableFIFO();
   ecu_can.enableFIFOInterrupt();
   ecu_can.onReceive(rx_ecu_can);
+
+  engine_hours_attack_state = false;
+  transport_message_attack_state = false;
+  vin_attack_state = false;
+  flood_attack_state = false;
 }
 
 void rx_vehicle_msg(const CAN_message_t &msg){
@@ -88,8 +93,8 @@ void rx_ecu_can(CAN_message_t &msg){
       msg.buf[1]='A'; //0x61
       msg.buf[2]='T'; //0x74
       msg.buf[3]='T'; //0x74
-      msg.buf[4]='A';
-      msg.buf[5]='C';
+      msg.buf[4]='A'; //0x61
+      msg.buf[5]='C'; 
       msg.buf[6]='K';
       msg.buf[7]=' ';
       transport_message_attack_state = false;
@@ -99,6 +104,7 @@ void rx_ecu_can(CAN_message_t &msg){
   }
   ecu_rx_count++;
   YELLOW_LED_state = !YELLOW_LED_state;
+  Serial.println(millis());
   if (!flood_attack_state) vehicle_can.write(msg);
 }
 
