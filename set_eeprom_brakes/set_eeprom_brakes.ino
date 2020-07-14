@@ -18,6 +18,7 @@ void setup() {
   
   num_ecu_source_addresses = 1;
   ecu_source_addresses[0] = 11; //Brake Controller
+  //ecu_source_addresses[1] = 0xCA; //Brake Controller
 
   num_veh_source_addresses = 18;
   veh_source_addresses[0] = 0; // Engine

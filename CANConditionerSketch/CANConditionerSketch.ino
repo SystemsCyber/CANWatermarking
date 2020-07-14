@@ -13,8 +13,8 @@
 #define NUM_RX_MAILBOXES         NUM_SOURCE_ADDRESSES
 //
 //#define WAIT_TIME 2300 //Brakes
-//#define WAIT_TIME 2200 //Engine
-#define WAIT_TIME 2250 //Transmission
+#define WAIT_TIME 2200 //Engine
+//#define WAIT_TIME 2250 //Transmission
 
 #define RED_LED    3
 #define GREEN_LED  2
