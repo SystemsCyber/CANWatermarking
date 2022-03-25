@@ -11,7 +11,10 @@
 #define SEQ_MSG true
 #define NUM_TX_MAILBOXES         2
 #define NUM_RX_MAILBOXES         NUM_SOURCE_ADDRESSES
-
+//
+//#define WAIT_TIME 2300 //Brakes
+#define WAIT_TIME 2200 //Engine
+//#define WAIT_TIME 2250 //Transmission
 
 #define RED_LED    3
 #define GREEN_LED  2
@@ -183,7 +186,7 @@ void setup(void) {
   elapsedMillis wait_timer;
   while (received_public_key == false) {
     vehicle_can.events(); //must process events
-    if (wait_timer >= 2000) {
+    if (wait_timer >= WAIT_TIME) {
       wait_timer = 0;
       for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
         self_source_addr = get_self_source_addr(i);
@@ -237,7 +240,7 @@ void setup(void) {
     bool matching = false;
     while (matching == false) {
       vehicle_can.events();
-      if (wait_timer >= 2000) {
+      if (wait_timer >= WAIT_TIME) {
         wait_timer = 0;
         for (uint8_t i = 0; i < num_ecu_source_addresses; i++){
           self_source_addr = get_self_source_addr(i);
@@ -374,6 +377,7 @@ void loop() {
         ecu_index = i;
       }
     }
+    if (ecu_sa == 41) ecu_index = 255;//Body control message comes from different sources
     if (ecu_index < 0){
       // Send DM message for bad SA
       Serial.println("Found Bad Source Address.");

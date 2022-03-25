@@ -17,8 +17,9 @@ void setup() {
   num_ecu_source_addresses = 2;
   ecu_source_addresses[0] = 0; //Engine Controller
   ecu_source_addresses[1] = 15; //Retarder
-  
-  num_veh_source_addresses = 12;
+  //ecu_source_addresses[2] = 41; //Inst
+          
+  num_veh_source_addresses = 17;
   veh_source_addresses[0] = 249; // Diagnostic Tool
   veh_source_addresses[1] = 37; //Gateway
   veh_source_addresses[2] = 11; // Brake Controller
@@ -31,7 +32,12 @@ void setup() {
   veh_source_addresses[9] = 128+49; // Body controller CAN Conditioner
   veh_source_addresses[10] = 15; // Retarder
   veh_source_addresses[11] = 128+15; // Retarder CAN Conditioner
-  
+  veh_source_addresses[12] = 5; // Shift Console controller
+  veh_source_addresses[13] = 128+5; // Shift Console controller CAN Conditioner
+  veh_source_addresses[14] = 41; // Inst controller
+  veh_source_addresses[15] = 128+41; // Inst controller CAN Conditioner
+  veh_source_addresses[16] = 254; // Null Address
+   
   EEPROM.put(EEPROM_SELF_SOURCE_ADDR,ecu_source_addresses[0]+0x80);
   EEPROM.put(EEPROM_NUM_ECU_SA_ADDR,num_ecu_source_addresses);
   EEPROM.put(EEPROM_NUM_VEH_SA_ADDR,num_veh_source_addresses);

