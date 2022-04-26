@@ -7,3 +7,5 @@ provisioningApp/access_token.json
 *.pem
 *.pem_password
 provisioningApp/CAN Conditioner Security List.json
+serverless/key_file.json
+serverless/__pycache__/utils.cpython-38.pyc
